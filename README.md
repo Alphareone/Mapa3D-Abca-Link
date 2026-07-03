@@ -42,5 +42,6 @@ Este proyecto fue construido utilizando únicamente tecnologías *Front-End* pur
 ├── css/
 │   └── style.css       # Estilos visuales, temas (dark/light) y media queries móviles
 └── js/
-    ├── app.js          # Lógica del globo, eventos de clic y consultas a las APIs
-    └── paises.js       # Base de datos local para marcadores rápidos
+    ├── api.js          # Gestión y peticiones de datos a las APIs externas
+    ├── app.js          # Inicialización del globo, control de cámara y eventos de la interfaz
+    └── data.js         # Diccionarios de soporte y datos geográficos locales

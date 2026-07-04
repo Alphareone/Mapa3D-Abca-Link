@@ -1,0 +1,35 @@
+        // BASE DE DATOS COMPLETA MUNDIAL (Comprimida para no ocupar 1000 líneas)
+        // Formato: [Latitud, Longitud, "Nombre del País"]
+        const dataCruda = [
+            [33.93,67.7,"Afganistán"],[41.15,20.16,"Albania"],[28.03,1.65,"Argelia"],[42.5,1.52,"Andorra"],[-11.2,17.87,"Angola"],[-38.41,-63.61,"Argentina"],[40.06,45.03,"Armenia"],
+            [-25.27,133.77,"Australia"],[47.51,14.55,"Austria"],[40.14,47.57,"Azerbaiyán"],[25.03,-77.39,"Bahamas"],[26.06,50.55,"Bahréin"],[23.68,90.35,"Bangladesh"],
+            [13.19,-59.54,"Barbados"],[53.7,27.95,"Bielorrusia"],[50.5,4.46,"Bélgica"],[17.18,-88.49,"Belice"],[9.3,2.31,"Benín"],[27.51,90.43,"Bután"],[-16.29,-63.58,"Bolivia"],
+            [43.91,17.67,"Bosnia y Herzegovina"],[-22.32,24.68,"Botsuana"],[-14.23,-51.92,"Brasil"],[4.53,114.72,"Brunéi"],[42.73,25.48,"Bulgaria"],[12.23,-1.56,"Burkina Faso"],
+            [-3.37,29.91,"Burundi"],[11.55,104.91,"Camboya"],[3.84,11.5,"Camerún"],[56.13,-106.34,"Canadá"],[16.53,-15.12,"Cabo Verde"],[6.61,20.93,"República Centroafricana"],
+            [15.45,18.73,"Chad"],[-35.67,-71.54,"Chile"],[35.86,104.19,"China"],[4.57,-74.29,"Colombia"],[-11.87,43.87,"Comoras"],[0.22,15.82,"Congo"],[-4.03,21.75,"R.D. Congo"],
+            [9.74,-83.75,"Costa Rica"],[45.1,15.2,"Croacia"],[21.52,-77.78,"Cuba"],[35.12,33.42,"Chipre"],[49.81,15.47,"República Checa"],[56.26,9.5,"Dinamarca"],[11.82,42.59,"Yibuti"],
+            [18.97,-70.16,"R. Dominicana"],[-1.83,-78.18,"Ecuador"],[26.82,30.8,"Egipto"],[13.79,-88.89,"El Salvador"],[1.65,10.26,"Guinea Ecuatorial"],[15.17,39.22,"Eritrea"],
+            [58.59,25.01,"Estonia"],[-26.52,31.46,"Esuatini"],[9.14,40.48,"Etiopía"],[-16.57,179.41,"Fiyi"],[61.92,25.74,"Finlandia"],[46.22,2.21,"Francia"],[-0.8,11.6,"Gabón"],
+            [13.44,-15.31,"Gambia"],[42.31,43.35,"Georgia"],[51.16,10.45,"Alemania"],[7.94,-1.02,"Ghana"],[39.07,21.82,"Grecia"],[12.26,-61.6,"Granada"],[15.78,-90.23,"Guatemala"],
+            [9.94,-9.69,"Guinea"],[11.8,15.18,"Guinea-Bisáu"],[4.86,-58.93,"Guyana"],[18.97,-72.28,"Haití"],[15.19,-86.24,"Honduras"],[47.16,19.5,"Hungría"],[64.96,-19.02,"Islandia"],
+            [20.59,78.96,"India"],[-0.78,113.92,"Indonesia"],[32.42,53.68,"Irán"],[33.22,43.67,"Irak"],[53.14,-7.69,"Irlanda"],[31.04,34.85,"Israel"],[41.87,12.56,"Italia"],
+            [18.1,-77.29,"Jamaica"],[36.2,138.25,"Japón"],[31.24,36.51,"Jordania"],[48.01,66.92,"Kazajistán"],[-0.02,37.9,"Kenia"],[-3.37,-168.73,"Kiribati"],[39.03,125.75,"Corea del Norte"],
+            [35.9,127.76,"Corea del Sur"],[29.31,47.48,"Kuwait"],[41.2,74.76,"Kirguistán"],[19.85,102.49,"Laos"],[56.87,24.6,"Letonia"],[33.85,35.86,"Líbano"],[-29.6,28.23,"Lesoto"],
+            [6.42,-9.42,"Liberia"],[26.33,17.22,"Libia"],[47.16,9.55,"Liechtenstein"],[55.16,23.88,"Lituania"],[49.81,6.12,"Luxemburgo"],[-18.76,46.86,"Madagascar"],[-13.25,34.3,"Malaui"],
+            [4.21,101.97,"Malasia"],[3.2,73.22,"Maldivas"],[17.57,-3.99,"Malí"],[35.93,14.37,"Malta"],[21.09,-10.94,"Mauritania"],[-20.34,57.55,"Mauricio"],[23.63,-102.55,"México"],
+            [7.42,150.55,"Micronesia"],[47.43,28.36,"Moldavia"],[43.73,7.41,"Mónaco"],[46.86,103.84,"Mongolia"],[42.7,19.37,"Montenegro"],[31.79,-7.09,"Marruecos"],[-18.66,35.52,"Mozambique"],
+            [21.91,95.95,"Birmania"],[-22.95,18.49,"Namibia"],[-0.52,166.93,"Nauru"],[28.39,84.12,"Nepal"],[52.13,5.29,"Países Bajos"],[-40.9,174.88,"Nueva Zelanda"],[12.86,-85.2,"Nicaragua"],
+            [17.6,8.08,"Níger"],[9.08,8.67,"Nigeria"],[60.47,8.46,"Noruega"],[21.51,55.92,"Omán"],[30.37,69.34,"Pakistán"],[7.51,134.58,"Palaos"],[8.53,-80.78,"Panamá"],
+            [-6.31,143.95,"Papúa Nueva Guinea"],[-23.44,-58.44,"Paraguay"],[-9.19,-75.01,"Perú"],[12.87,121.77,"Filipinas"],[51.91,19.14,"Polonia"],[39.39,-8.22,"Portugal"],
+            [25.35,51.18,"Catar"],[45.94,24.96,"Rumania"],[61.52,105.31,"Rusia"],[-1.94,29.87,"Ruanda"],[13.9,-60.97,"Santa Lucía"],[-13.75,-172.1,"Samoa"],[43.94,12.45,"San Marino"],
+            [23.88,45.07,"Arabia Saudita"],[14.49,-14.45,"Senegal"],[44.01,21.0,"Serbia"],[-4.67,55.49,"Seychelles"],[8.46,-11.77,"Sierra Leona"],[1.35,103.81,"Singapur"],
+            [48.66,19.69,"Eslovaquia"],[46.15,14.99,"Eslovenia"],[-9.64,160.15,"Islas Salomón"],[5.15,46.19,"Somalia"],[-30.55,22.93,"Sudáfrica"],[11.8,31.35,"Sudán del Sur"],
+            [40.46,-3.74,"España"],[7.87,80.77,"Sri Lanka"],[12.86,30.21,"Sudán"],[3.91,-56.02,"Surinam"],[60.12,18.64,"Suecia"],[46.81,8.22,"Suiza"],[34.8,38.99,"Siria"],
+            [23.69,120.96,"Taiwán"],[38.86,71.27,"Tayikistán"],[-6.36,34.88,"Tanzania"],[15.87,100.99,"Tailandia"],[8.61,0.82,"Togo"],[-21.17,-175.19,"Tonga"],[10.69,-61.22,"Trinidad y Tobago"],
+            [33.88,9.53,"Túnez"],[38.96,35.24,"Turquía"],[38.96,59.55,"Turkmenistán"],[-8.51,179.21,"Tuvalu"],[1.37,32.29,"Uganda"],[48.37,31.16,"Ucrania"],[23.42,53.84,"EAU"],
+            [55.37,-3.43,"Reino Unido"],[37.09,-95.71,"Estados Unidos"],[-32.52,-55.76,"Uruguay"],[41.37,64.58,"Uzbekistán"],[-15.37,166.95,"Vanuatu"],[41.9,12.45,"Ciudad del Vaticano"],
+            [6.42,-66.58,"Venezuela"],[14.05,108.27,"Vietnam"],[15.55,48.51,"Yemen"],[-13.13,27.84,"Zambia"],[-19.01,29.15,"Zimbabue"]
+        ];
+
+// Se convierte al formato que lee Globe.gl
+const todosLosPaises = dataCruda.map(p => ({ lat: p[0], lng: p[1], name: p[2] }));

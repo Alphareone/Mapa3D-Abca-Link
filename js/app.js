@@ -16,7 +16,7 @@ const world = Globe()
     .labelColor(() => document.body.classList.contains('dark-mode') ? '#00ffcc' : '#b3ffc6') 
     .labelLabel(d => `
         <div class="pais-tooltip">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> 
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg> 
             ${d.name}
         </div>
     `)
@@ -49,15 +49,13 @@ const world = Globe()
         world.controls().autoRotate = false;
         world.pointOfView({ lat: lat, lng: lng, altitude: 1.2 }, 1000);
         
-        let isoCode = d.properties.ISO_A2 || d.properties.iso_a2 || d.properties.ISO_A3 || d.properties.iso_a3;
-        if (isoCode && typeof isoCode === 'string') {
-            isoCode = isoCode.toUpperCase().trim();
-        }
-
-        const nameAdmin = d.properties.ADMIN || d.properties.name;
-        const nameEs = d.properties.NAME_ES || d.properties.name;
+        let iso2 = d.properties.ISO_A2 || d.properties.iso_a2 || "";
+        let iso3 = d.properties.ISO_A3 || d.properties.iso_a3 || "";
         
-        cargarInfoPais(isoCode, nameAdmin, nameEs);
+        const nameAdmin = d.properties.ADMIN || d.properties.name || "";
+        const nameEs = d.properties.NAME_ES || d.properties.name || "";
+        
+        cargarInfoPais(iso2.toUpperCase().trim(), iso3.toUpperCase().trim(), nameAdmin, nameEs);
     });
 
 // --- CARGAR DATOS DE FRONTERAS ---
@@ -99,16 +97,22 @@ async function buscarDireccion() {
             const lat = parseFloat(result.lat);
             const lon = parseFloat(result.lon);
             
+            let iso2 = "";
             if (result.address && result.address.country_code) {
-                const isoCode = result.address.country_code.toUpperCase();
+                iso2 = result.address.country_code.toUpperCase();
                 
                 if (geojsonData && geojsonData.length > 0) {
-                    paisSeleccionado = geojsonData.find(p => p.properties.ISO_A2 === isoCode || p.properties.iso_a2 === isoCode || p.properties.ISO_A2 === isoCode.toLowerCase() || p.properties.iso_a2 === isoCode.toLowerCase());
+                    paisSeleccionado = geojsonData.find(p => 
+                        p.properties.ISO_A2 === iso2 || 
+                        p.properties.iso_a2 === iso2 || 
+                        p.properties.ISO_A2 === iso2.toLowerCase() || 
+                        p.properties.iso_a2 === iso2.toLowerCase()
+                    );
                     world.polygonsData([...geojsonData]); 
                 }
                 
                 const nombreOficial = result.address.country || query;
-                cargarInfoPais(isoCode, nombreOficial, nombreOficial);
+                cargarInfoPais(iso2, "", nombreOficial, nombreOficial);
             } else {
                 paisSeleccionado = null;
                 world.polygonsData([...geojsonData]);
@@ -139,11 +143,10 @@ document.getElementById('search-input').addEventListener('keypress', function (e
     if (e.key === 'Enter') buscarDireccion();
 });
 
-// --- FUNCIÓN DEL PANEL LATERAL INTELIGENTE ---
-async function cargarInfoPais(isoCode, nameAdmin, nameEs) {
+// --- FUNCIÓN DEL PANEL LATERAL LIMPIA Y AUTÓNOMA ---
+async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     const panel = document.getElementById('country-info');
     
-    // Traducir nombres comunes rápidamente para el encabezado visual
     const traducciónDirecta = {
         "Brazil": "Brasil", "Japan": "Japón", "United States of America": "Estados Unidos",
         "United Kingdom": "Reino Unido", "South Korea": "Corea del Sur", "North Korea": "Corea del Norte",
@@ -164,15 +167,15 @@ async function cargarInfoPais(isoCode, nameAdmin, nameEs) {
     const elemDemonym = document.getElementById('ci-demonym');
     const elemHistory = document.getElementById('ci-history');
 
-    if (elemCapital) elemCapital.innerText = "Buscando...";
-    if (elemPop) elemPop.innerText = "Buscando...";
-    if (elemDemonym) elemDemonym.innerText = "Buscando...";
+    if (elemCapital) elemCapital.innerText = "Cargando...";
+    if (elemPop) elemPop.innerText = "Cargando...";
+    if (elemDemonym) elemDemonym.innerText = "Cargando...";
     if (elemHistory) elemHistory.innerText = "Consultando registros...";
 
-    // --- INTERCEPCIÓN EXCLUSIVA DE LA ANTÁRTIDA ---
-    if (isoCode === "ATA" || nameAdmin.toLowerCase() === "antarctica" || nombreMostrar === "Antártida") {
-        if (elemCapital) elemCapital.innerText = "No posee (Regido por Tratado Antártico)";
-        if (elemPop) elemPop.innerText = "0 hab. (1.000 - 5.000 científicos según temporada)";
+    // Intercepción para la Antártida
+    if (iso3 === "ATA" || iso2 === "AQ" || nameAdmin.toLowerCase() === "antarctica" || nombreMostrar === "Antártida") {
+        if (elemCapital) elemCapital.innerText = "No posee (Tratado Antártico)";
+        if (elemPop) elemPop.innerText = "0 hab. (Científicos temporales)";
         if (elemDemonym) elemDemonym.innerText = "Antártico / Antártica";
         
         const dataWiki = await apiHistoriaPais("Antártida");
@@ -180,64 +183,37 @@ async function cargarInfoPais(isoCode, nameAdmin, nameEs) {
         return; 
     }
 
-    let dataRest = null;
+    // Leer datos desde el archivo data.js de forma instantánea
+    const bdLocal = window.BD_MUNDIAL_OFICIAL || {};
+    let registro = bdLocal[iso3] || bdLocal[iso2];
 
-    // --- PIPELINE DE CONSULTA DE TRES NIVELES ---
-    try {
-        // Nivel 1: Por código ISO estructurado (si es válido)
-        if (isoCode && isoCode !== "-99" && isoCode.length <= 3) {
-            dataRest = await apiDatosPais(isoCode.toUpperCase().trim());
-        }
-
-        // Nivel 2: Por Nombre Administrativo si el código falló o vino vacío
-        if (!dataRest && nameAdmin) {
-            const resName = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(nameAdmin)}?fullText=true`);
-            if (resName.ok) {
-                const arr = await resName.json();
-                dataRest = arr[0];
-            }
-        }
-    } catch (e) {
-        console.warn("REST Countries falló. Activando rescate dinámico por Wikipedia.", e);
+    // Buscar por nombre si los códigos fallan
+    if (!registro) {
+        const llave = Object.keys(bdLocal).find(k => 
+            bdLocal[k].nombre.toLowerCase() === nombreMostrar.toLowerCase() ||
+            bdLocal[k].nombre.toLowerCase() === nameAdmin.toLowerCase()
+        );
+        if (llave) registro = bdLocal[llave];
     }
 
-    // --- PROCESAMIENTO Y RENDERIZADO DE INFORMACIÓN ---
-    if (dataRest) {
-        // 1. Capital
-        const capital = dataRest.capital && dataRest.capital.length > 0 ? dataRest.capital[0] : "No declarada";
-        if (elemCapital) elemCapital.innerText = capital;
-        
-        // 2. Población
-        const poblacion = dataRest.population !== undefined ? Number(dataRest.population).toLocaleString('es-ES') : "Desconocida";
-        if (elemPop) elemPop.innerText = poblacion + " hab.";
-        
-        // 3. Gentilicio
-        let gentilicio = "No registrado";
-        if (dataRest.demonyms) {
-            if (dataRest.demonyms.spa && dataRest.demonyms.spa.m) gentilicio = dataRest.demonyms.spa.m;
-            else if (dataRest.demonyms.eng && dataRest.demonyms.eng.m) gentilicio = dataRest.demonyms.eng.m;
-        }
-        if (elemDemonym) elemDemonym.innerText = gentilicio;
-        
-        // Traducir el título principal de forma oficial si está la traducción disponible
-        if (dataRest.translations && dataRest.translations.spa) {
-            nombreMostrar = dataRest.translations.spa.common;
-            if (elemName) elemName.innerText = nombreMostrar;
-        }
-    } 
+    // Inyectar datos en la interfaz sin esperas ni textos vagos
+    if (registro) {
+        if (elemCapital) elemCapital.innerText = registro.capital;
+        if (elemPop) elemPop.innerText = registro.pob;
+        if (elemDemonym) elemDemonym.innerText = registro.gen;
+        if (elemName) elemName.innerText = registro.nombre;
+        nombreMostrar = registro.nombre;
+    } else {
+        if (elemCapital) elemCapital.innerText = "No registrado";
+        if (elemPop) elemPop.innerText = "Desconocida";
+        if (elemDemonym) elemDemonym.innerText = "No registrado";
+    }
 
-    // --- CONSULTA A WIKIPEDIA (Y NIVEL 3 DE RESCATE AUTOMÁTICO) ---
+    // Traer la historia desde Wikipedia
     if (nombreMostrar) {
         const dataWiki = await apiHistoriaPais(nombreMostrar);
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico general no localizado en Wikipedia.";
-        }
-
-        // SI REST COUNTRIES SE BLOQUEÓ POR CORS: Usamos los metadatos de Wikipedia para rellenar los vacíos
-        if (!dataRest) {
-            if (elemCapital) elemCapital.innerText = "Ver texto enciclopédico inferior";
-            if (elemPop) elemPop.innerText = "Información disponible en la descripción";
-            if (elemDemonym) elemDemonym.innerText = "Región de " + nombreMostrar;
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico no localizado.";
         }
     }
 }

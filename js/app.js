@@ -43,18 +43,18 @@ const world = Globe()
         world.polygonsData([...geojsonData]); 
     })
     .onPolygonClick((d, event, { lat, lng }) => {
-        // 1. Seleccionar el país y repintar
         paisSeleccionado = d;
         world.polygonsData([...geojsonData]); 
         
-        // 2. Detener la rotación automática para que el país no se nos escape
         world.controls().autoRotate = false;
-
-        // 3. ¡EL ENFOQUE! Mover la cámara a las coordenadas donde el usuario hizo clic
         world.pointOfView({ lat: lat, lng: lng, altitude: 1.2 }, 1000);
         
-        // 4. Extraer datos para el panel lateral
-        const isoCode = d.properties.ISO_A2 || d.properties.iso_a2 || d.properties.ISO_A3 || d.properties.iso_a3;
+        // CORRECCIÓN AQUÍ: Forzar que el ISO se extraiga de forma limpia y pase siempre a MAYÚSCULAS
+        let isoCode = d.properties.ISO_A2 || d.properties.iso_a2 || d.properties.ISO_A3 || d.properties.iso_a3;
+        if (isoCode && typeof isoCode === 'string') {
+            isoCode = isoCode.toUpperCase().trim();
+        }
+
         const name = d.properties.NAME_ES || d.properties.ADMIN || d.properties.name;
         
         if (name) {
@@ -105,7 +105,7 @@ async function buscarDireccion() {
                 const isoCode = result.address.country_code.toUpperCase();
                 
                 if (geojsonData && geojsonData.length > 0) {
-                    paisSeleccionado = geojsonData.find(p => p.properties.ISO_A2 === isoCode || p.properties.iso_a2 === isoCode);
+                    paisSeleccionado = geojsonData.find(p => p.properties.ISO_A2 === isoCode || p.properties.iso_a2 === isoCode || p.properties.ISO_A2 === isoCode.toLowerCase() || p.properties.iso_a2 === isoCode.toLowerCase());
                     world.polygonsData([...geojsonData]); 
                 }
                 
@@ -160,7 +160,6 @@ async function cargarInfoPais(isoCode, nombrePais) {
     const elemName = document.getElementById('ci-name');
     if (elemName) elemName.innerText = nombreTraducido; 
 
-    // Vinculación estricta con los IDs reales de tu index.html
     const elemCapital = document.getElementById('ci-capital');
     const elemPop = document.getElementById('ci-pop');
     const elemDemonym = document.getElementById('ci-demonym');
@@ -171,60 +170,35 @@ async function cargarInfoPais(isoCode, nombrePais) {
     if (elemDemonym) elemDemonym.innerText = "Buscando...";
     if (elemHistory) elemHistory.innerText = "Consultando archivos históricos...";
 
-    // --- CASO ESPECIAL: ANTÁRTIDA ---
+    // --- CASO ANTÁRTIDA EXCLUSIVO ---
     if (isoCode === "ATA" || (nombrePais && nombrePais.toLowerCase() === "antarctica") || nombreTraducido === "Antártida") {
-        if (elemCapital) elemCapital.innerText = "No posee (Regida por el Tratado Antártico)";
-        if (elemPop) elemPop.innerText = "0 hab. (1.000 a 5.000 científicos según la estación)";
+        if (elemCapital) elemCapital.innerText = "No posee (Tratado Antártico)";
+        if (elemPop) elemPop.innerText = "0 hab. (Científicos temporales)";
         if (elemDemonym) elemDemonym.innerText = "Antártico / Antártica";
         
         const dataWiki = await apiHistoriaPais("Antártida");
-        if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente cubierto de hielo que rodea el Polo Sur geográfico.";
-        }
+        if (elemHistory) elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente helado del Polo Sur.";
         return; 
     }
 
+    // --- CONSULTA CORREGIDA PASANDO EL ISO A MAYÚSCULAS ---
     let dataRest = null;
-
-    // --- ESTRATEGIA DE BÚSQUEDA MULTI-INTENTO INTELIGENTE ---
     try {
-        // Intento 1: Usar tu función nativa de api.js con el código ISO disponible
         if (isoCode && isoCode !== "-99") {
-            dataRest = await apiDatosPais(isoCode);
-        }
-        
-        // Intento 2: Si la API falló con el código ISO, forzar consulta directa por el nombre en inglés del mapa
-        if (!dataRest && nombrePais) {
-            const resName = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(nombrePais)}?fullText=true`);
-            if (resName.ok) {
-                const arr = await resName.json();
-                dataRest = arr[0];
-            }
-        }
-
-        // Intento 3: Si sigue sin aparecer, buscar por aproximación de nombre traducido
-        if (!dataRest && nombreTraducido) {
-            const resNameEs = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(nombreTraducido)}`);
-            if (resNameEs.ok) {
-                const arr = await resNameEs.json();
-                dataRest = arr[0];
-            }
+            // Se envía el código formateado en mayúsculas obligatorio para la API
+            dataRest = await apiDatosPais(isoCode.toUpperCase().trim());
         }
     } catch (e) {
-        console.warn("Error de red con la API de países:", e);
+        console.warn("Error con apiDatosPais:", e);
     }
 
-    // --- INYECTAR LOS DATOS ENCONTRADOS ---
     if (dataRest) {
-        // 1. Procesar Capital
         const capital = dataRest.capital && dataRest.capital.length > 0 ? dataRest.capital[0] : "No declarada";
         if (elemCapital) elemCapital.innerText = capital;
         
-        // 2. Procesar Población (Formateada con puntos de miles)
         const poblacion = dataRest.population !== undefined ? Number(dataRest.population).toLocaleString('es-ES') : "Desconocida";
         if (elemPop) elemPop.innerText = poblacion + " hab.";
         
-        // 3. Procesar Gentilicio (Buscando el español nativo primero)
         let gentilicio = "No registrado";
         if (dataRest.demonyms) {
             if (dataRest.demonyms.spa && dataRest.demonyms.spa.m) gentilicio = dataRest.demonyms.spa.m;
@@ -232,25 +206,24 @@ async function cargarInfoPais(isoCode, nombrePais) {
         }
         if (elemDemonym) elemDemonym.innerText = gentilicio;
         
-        // Sincronizar el título del panel con el nombre en español oficial de la API
         if (dataRest.translations && dataRest.translations.spa) {
             nombreTraducido = dataRest.translations.spa.common;
             if (elemName) elemName.innerText = nombreTraducido;
         }
     } else {
-        if (elemCapital) elemCapital.innerText = "Información no disponible";
-        if (elemPop) elemPop.innerText = "Información no disponible";
-        if (elemDemonym) elemDemonym.innerText = "Información no disponible";
+        if (elemCapital) elemCapital.innerText = "No disponible";
+        if (elemPop) elemPop.innerText = "No disponible";
+        if (elemDemonym) elemDemonym.innerText = "No disponible";
     }
 
-    // --- CONSULTA A WIKIPEDIA ---
     if (nombreTraducido) {
         const dataWiki = await apiHistoriaPais(nombreTraducido);
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico general no localizado en Wikipedia.";
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico no localizado.";
         }
     }
 }
+
 // --- FUNCIÓN DEL TEMA ---
 function toggleTheme() {
     const body = document.body;
@@ -276,7 +249,6 @@ function toggleTheme() {
     if (geojsonData.length > 0) world.polygonsData([...geojsonData]);
 }
 
-// --- AUTO-AJUSTAR EL TAMAÑO DEL GLOBO EN CELULARES ---
 window.addEventListener('resize', () => {
     world.width(window.innerWidth);
     world.height(window.innerHeight);

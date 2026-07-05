@@ -47,18 +47,20 @@ const world = Globe()
         paisSeleccionado = d;
         world.polygonsData([...geojsonData]); 
         
-        // 2. Detener la rotación automática para que el país no se nos escape
+        // 2. Detener la rotación automática
         world.controls().autoRotate = false;
 
-        // 3. ¡EL ENFOQUE! Mover la cámara a las coordenadas donde el usuario hizo clic
+        // 3. Mover la cámara a las coordenadas del clic
         world.pointOfView({ lat: lat, lng: lng, altitude: 1.2 }, 1000);
         
-        // 4. CORRECCIÓN DE PARÁMETROS AQUÍ: Extraer de forma individualizada ISO2, ISO3 y Nombres
-        const iso2 = d.properties.ISO_A2 || d.properties.iso_a2 || "";
-        const iso3 = d.properties.ISO_A3 || d.properties.iso_a3 || "";
-        const nameAdmin = d.properties.ADMIN || d.properties.name || "";
-        const nameEs = d.properties.NAME_ES || "";
+        // 4. EXTRACCIÓN FIEL DE LAS PROPIEDADES REALES DEL GEOJSON
+        const props = d.properties || {};
+        const iso2 = props.ISO_A2 || props.iso_a2 || "";
+        const iso3 = props.ISO_A3 || props.iso_a3 || "";
+        const nameAdmin = props.ADMIN || props.name || "";
+        const nameEs = props.NAME_ES || props.name_es || "";
         
+        // Enviamos los 4 parámetros ordenados para que la función haga su magia
         cargarInfoPais(iso2, iso3, nameAdmin, nameEs);
     });
 
@@ -74,7 +76,7 @@ fetch('https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/data
 world.controls().autoRotate = true;
 world.controls().autoRotateSpeed = 0.5;
 world.controls().enableZoom = true;
-world.controls().maxDistance = 400; // <--- Bloquea que el usuario se aleje al espacio infinito (Feedback Hermano)
+world.controls().maxDistance = 400; // <--- Bloquea que el usuario se aleje al espacio infinito
 world.pointOfView({ lat: 20, lng: -40, altitude: 2.5 });
 
 world.onLabelHover(label => {
@@ -180,17 +182,17 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     if (elemNacionalidad) elemNacionalidad.innerText = "Buscando...";
     if (elemHistory) elemHistory.innerText = "Consultando archivos históricos...";
 
-    // --- CASO ESPECIAL CORREGIDO: ANTÁRTIDA (EVITA PELÍCULAS DE WIKIPEDIA) ---
+    // --- CASO ESPECIAL CORREGIDO: ANTÁRTIDA (FUERZA EL TÉRMINO GEOGRÁFICO CORRECTO) ---
     if (iso3 === "ATA" || iso2 === "AQ" || nameAdmin.toLowerCase() === "antarctica" || nombreMostrar === "Antártida") {
         if (elemCapital) elemCapital.innerText = "No posee (Regida por el Tratado Antártico)";
         if (elemPop) elemPop.innerText = "0 hab. (Científicos temporales)";
         if (elemNacionalidad) elemNacionalidad.innerText = "Antártico / Antártica";
         if (elemName) elemName.innerText = "Antártida";
         
-        // Forzamos la búsqueda de Wikipedia hacia el artículo geográfico correcto para que no cargue la película
+        // Forzamos explícitamente a Wikipedia a buscar el artículo geográfico y evitamos la película cinematográfica
         const dataWiki = await apiHistoriaPais("Antártida (continente)");
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente cubierto de hielo que rodea el Polo Sur geográfico, destinado a la paz y la ciencia.";
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente cubierto de hielo que rodea el Polo Sur geográfico, destinado a la paz y la investigación científica.";
         }
         return; 
     }
@@ -246,7 +248,7 @@ function toggleTheme() {
         body.classList.remove('dark-mode');
         document.getElementById('theme-text').innerText = 'Oscuro';
         themeIcon.innerHTML = iconMoon;
-        document.getElementById('globeViz').style.background = "linear-gradient(180deg, #bbf2f6 0%, #86e3ce 100%)"; // Fondo dinámico (Feedback Hermano)
+        document.getElementById('globeViz').style.background = "linear-gradient(180deg, #bbf2f6 0%, #86e3ce 100%)"; 
         world.globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
     } else {
         body.classList.add('dark-mode');

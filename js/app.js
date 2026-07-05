@@ -21,7 +21,11 @@ const world = Globe()
         </div>
     `)
     .onLabelClick(d => {
-        document.getElementById('search-input').value = d.name;
+        // Sincroniza la barra de búsqueda inmediatamente al hacer clic en una etiqueta
+        const inputBusqueda = document.getElementById('search-input');
+        if (inputBusqueda) {
+            inputBusqueda.value = d.name;
+        }
         buscarDireccion();
     })
     .polygonAltitude(d => (d === paisSeleccionado ? 0.12 : 0.02))
@@ -43,34 +47,34 @@ const world = Globe()
         world.polygonsData([...geojsonData]); 
     })
     .onPolygonClick((d, event, { lat, lng }) => {
-        // 1. Seleccionar el país y repintar
+        // 1. Seleccionar el país y repintar fronteras
         paisSeleccionado = d;
         world.polygonsData([...geojsonData]); 
         
-        // 2. Detener la rotación automática
+        // 2. Detener la rotación automática para enfocar la lectura
         world.controls().autoRotate = false;
 
-        // 3. Mover la cámara a las coordenadas del clic
+        // 3. Mover la cámara de forma fluida a las coordenadas del clic
         world.pointOfView({ lat: lat, lng: lng, altitude: 1.2 }, 1000);
         
-        // 4. EXTRACCIÓN FIEL DE LAS PROPIEDADES REALES DEL GEOJSON
+        // 4. Extracción de las propiedades reales del GeoJSON geoespacial
         const props = d.properties || {};
         const iso2 = props.ISO_A2 || props.iso_a2 || "";
         const iso3 = props.ISO_A3 || props.iso_a3 || "";
         const nameAdmin = props.ADMIN || props.name || "";
         const nameEs = props.NAME_ES || props.name_es || "";
         
-        // 5. SOLUCIÓN AL INPUT DE BÚSQUEDA: Sincronizar la barra de texto superior
+        // 5. Sincronización exacta de la barra de texto superior
         const inputBusqueda = document.getElementById('search-input');
         if (inputBusqueda) {
             inputBusqueda.value = nameEs || nameAdmin;
         }
 
-        // Enviamos los 4 parámetros ordenados para que la función haga su magia
+        // Ejecutar la carga asíncrona del panel lateral con los datos limpios
         cargarInfoPais(iso2, iso3, nameAdmin, nameEs);
     });
 
-// --- CARGAR DATOS DE FRONTERAS ---
+// --- CARGAR DATOS DE FRONTERAS (GEOJSON MUNDIAL) ---
 fetch('https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson')
     .then(res => res.json())
     .then(countries => {
@@ -78,21 +82,22 @@ fetch('https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/data
         world.polygonsData(geojsonData); 
     });
 
-// --- CONTROLES DE CÁMARA ---
+// --- CONTROLES DE CÁMARA E INTERACCIÓN ---
 world.controls().autoRotate = true;
 world.controls().autoRotateSpeed = 0.5;
 world.controls().enableZoom = true;
-world.controls().maxDistance = 400; // Bloquea que el usuario se aleje al espacio infinito
+world.controls().maxDistance = 400; // Evita perder el globo en el espacio infinito
 world.pointOfView({ lat: 20, lng: -40, altitude: 2.5 });
 
 world.onLabelHover(label => {
     document.getElementById('globeViz').style.cursor = label ? 'pointer' : 'grab';
 });
+
 document.getElementById('globeViz').addEventListener('mousedown', () => {
     world.controls().autoRotate = false;
 });
 
-// --- LÓGICA DE BÚSQUEDA ---
+// --- LÓGICA DE BÚSQUEDA Y GEOPOSICIONAMIENTO VIA OSM ---
 async function buscarDireccion() {
     const query = document.getElementById('search-input').value;
     if (!query) return;
@@ -102,6 +107,7 @@ async function buscarDireccion() {
     world.controls().autoRotate = false;
 
     try {
+        // Se conecta con la función del api.js para buscar en Nominatim
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1`);
         const data = await response.json();
 
@@ -115,14 +121,14 @@ async function buscarDireccion() {
                 isoCode2 = result.address.country_code.toUpperCase();
                 
                 if (geojsonData && geojsonData.length > 0) {
+                    // Buscar coincidencia en los polígonos cargados para iluminarlo
                     paisSeleccionado = geojsonData.find(p => p.properties.ISO_A2 === isoCode2 || p.properties.iso_a2 === isoCode2);
                     world.polygonsData([...geojsonData]); 
                 }
                 
                 const nombreOficial = result.address.country || query;
-                
-                // Mapeo básico para obtener el ISO3 compatible desde el polígono si existe
                 const iso3 = paisSeleccionado ? (paisSeleccionado.properties.ISO_A3 || paisSeleccionado.properties.iso_a3 || "") : "";
+                
                 cargarInfoPais(isoCode2, iso3, nombreOficial, nombreOficial);
             } else {
                 paisSeleccionado = null;
@@ -131,6 +137,7 @@ async function buscarDireccion() {
                 if (panel) panel.classList.add('hidden');
             }
 
+            // Cálculo matemático dinámico del zoom basado en el Bounding Box del país
             let zoomAltitud = 0.8; 
             if (result.boundingbox) {
                 const latDiff = Math.abs(parseFloat(result.boundingbox[1]) - parseFloat(result.boundingbox[0]));
@@ -141,7 +148,7 @@ async function buscarDireccion() {
 
             world.pointOfView({ lat: lat, lng: lon, altitude: zoomAltitud }, 2000); 
         } else {
-            alert("No se encontraron resultados en el mapa.");
+            alert("No se encontraron resultados en el mapa para: " + query);
         }
     } catch (error) {
         console.error("Error al buscar la dirección:", error);
@@ -154,7 +161,7 @@ document.getElementById('search-input').addEventListener('keypress', function (e
     if (e.key === 'Enter') buscarDireccion();
 });
 
-// --- FUNCIÓN DEL PANEL LATERAL (TOTALMENTE INTEGRADA CON TU DATA.JS LOCAL) ---
+// --- FUNCIÓN PRINCIPAL DEL PANEL LATERAL CON INTEGRACIÓN TOTAL ---
 async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     const panel = document.getElementById('country-info');
     
@@ -175,34 +182,33 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
 
     const elemCapital = document.getElementById('ci-capital');
     const elemPop = document.getElementById('ci-pop');
-    
-    // Captura dinámica compatible con cualquier ID de nacionalidad / gentilicio
-    const elemNacionalidad = document.getElementById('ci-nationality') || 
-                             document.getElementById('ci-nacionalidad') || 
-                             document.getElementById('ci-demonym');
-                             
+    const elemNacionalidad = document.getElementById('ci-demonym');
+    const elemMoneda = document.getElementById('ci-moneda');
     const elemHistory = document.getElementById('ci-history');
 
+    // Estados de carga iniciales en la interfaz
     if (elemCapital) elemCapital.innerText = "Buscando...";
     if (elemPop) elemPop.innerText = "Buscando...";
     if (elemNacionalidad) elemNacionalidad.innerText = "Buscando...";
+    if (elemMoneda) elemMoneda.innerText = "Buscando...";
     if (elemHistory) elemHistory.innerText = "Consultando archivos históricos...";
 
-    // --- CASO ESPECIAL CORREGIDO: ANTÁRTIDA (EVITA PELÍCULAS DE WIKIPEDIA) ---
+    // --- MANEJO EXCLUSIVO DEL CASO DE LA ANTÁRTIDA ---
     if (iso3 === "ATA" || iso2 === "AQ" || nameAdmin.toLowerCase() === "antarctica" || nombreMostrar === "Antártida") {
         if (elemCapital) elemCapital.innerText = "No posee (Regida por el Tratado Antártico)";
         if (elemPop) elemPop.innerText = "0 hab. (Científicos temporales)";
         if (elemNacionalidad) elemNacionalidad.innerText = "Antártico / Antártica";
+        if (elemMoneda) elemMoneda.innerText = "Ninguna oficial";
         if (elemName) elemName.innerText = "Antártida";
         
         const dataWiki = await apiHistoriaPais("Antártida (continente)");
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente cubierto de hielo que rodea el Polo Sur geográfico, destinado a la paz y la ciencia.";
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente helado dedicado por tratado internacional a fines pacíficos y científicos.";
         }
         return; 
     }
 
-    // 1. Intentar resolver de forma instantánea usando tu BD_MUNDIAL_OFICIAL de data.js
+    // PASO 1: Renderizado instantáneo usando tu BD_MUNDIAL_OFICIAL (data.js)
     const bdLocal = window.BD_MUNDIAL_OFICIAL || {};
     let registro = null;
     
@@ -217,30 +223,79 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         if (llave) registro = bdLocal[llave];
     }
 
-    // 2. Si encontramos el registro local, inyectamos de inmediato (Evita fallos de restcountries)
+    // Inyección inicial con datos locales estables
     if (registro) {
         if (elemCapital) elemCapital.innerText = registro.capital;
         if (elemPop) elemPop.innerText = registro.pob;
         if (elemNacionalidad) elemNacionalidad.innerText = registro.gen;
         if (elemName) elemName.innerText = registro.nombre;
         nombreMostrar = registro.nombre; 
+        if (elemMoneda) elemMoneda.innerText = "Cargando divisa...";
     } else {
-        // Fallback dinámico si no estuviera en tu base local principal
         if (elemCapital) elemCapital.innerText = "Información disponible";
         if (elemPop) elemPop.innerText = "No disponible";
         if (elemNacionalidad) elemNacionalidad.innerText = "No registrado";
     }
 
-    // 3. Consulta limpia a Wikipedia usando el nombre en español verificado
+    // PASO 2: Enriquecimiento dinámico asíncrono llamando a api.js (REST Countries)
+    let dataRest = null;
+    try {
+        const codigoBuscar = (iso2 && iso2 !== "-99") ? iso2 : iso3;
+        if (codigoBuscar && codigoBuscar !== "-99") {
+            dataRest = await apiDatosPais(codigoBuscar);
+        }
+    } catch (e) {
+        console.warn("REST Countries offline, operando con base local de respaldo.");
+    }
+
+    if (dataRest) {
+        // Actualizar población con formateo real de millares
+        if (dataRest.population !== undefined && elemPop) {
+            elemPop.innerText = Number(dataRest.population).toLocaleString('es-ES') + " hab.";
+        }
+        // Actualizar Capital oficial
+        if (dataRest.capital && dataRest.capital.length > 0 && elemCapital) {
+            elemCapital.innerText = dataRest.capital[0];
+        }
+        // Extraer y formatear el mapa complejo de monedas dinámicamente
+        if (dataRest.currencies && elemMoneda) {
+            const monedasFormateadas = Object.keys(dataRest.currencies).map(codigo => {
+                const info = dataRest.currencies[codigo];
+                const symbolStr = info.symbol ? ` (${info.symbol})` : "";
+                return `${info.name}${symbolStr} [${codigo}]`;
+            });
+            elemMoneda.innerText = monedasFormateadas.join(", ");
+        }
+        // Extraer gentilicios oficiales (Prioriza español, recurre a inglés)
+        if (dataRest.demonyms && elemNacionalidad) {
+            let gentilicioFinal = "No registrado";
+            if (dataRest.demonyms.spa && dataRest.demonyms.spa.m) {
+                gentilicioFinal = dataRest.demonyms.spa.m;
+            } else if (dataRest.demonyms.eng && dataRest.demonyms.eng.m) {
+                gentilicioFinal = dataRest.demonyms.eng.m;
+            }
+            elemNacionalidad.innerText = gentilicioFinal;
+        }
+        // Sincronizar nombre final traducido oficialmente por la API
+        if (dataRest.translations && dataRest.translations.spa && elemName) {
+            nombreMostrar = dataRest.translations.spa.common;
+            elemName.innerText = nombreMostrar;
+        }
+    } else {
+        // Fallback si REST countries falla y no hay registro previo en data.js
+        if (!registro && elemMoneda) elemMoneda.innerText = "No disponible";
+    }
+
+    // PASO 3: Consulta asíncrona a Wikipedia (api.js) con el nombre definitivo en español
     if (nombreMostrar) {
         const dataWiki = await apiHistoriaPais(nombreMostrar);
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico general no localizado.";
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico general en proceso de sincronización.";
         }
     }
 }
 
-// --- FUNCIÓN DEL TEMA (FONDO CON DEGRADADO DINÁMICO) ---
+// --- MANEJO DE TEMA (DISEÑO Y TEXTURAS DINÁMICAS) ---
 function toggleTheme() {
     const body = document.body;
     const isDark = body.classList.contains('dark-mode');
@@ -263,11 +318,12 @@ function toggleTheme() {
         world.globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg');
     }
     
+    // Forzar actualización visual completa de capas del mapa
     world.labelsData([...todosLosPaises]);
     if (geojsonData.length > 0) world.polygonsData([...geojsonData]);
 }
 
-// --- AUTO-AJUSTAR EL TAMAÑO DEL GLOBO EN CELULARES ---
+// --- RESPONSIVE: RESPONDER A CAMBIOS DE TAMAÑO EN TIEMPO REAL ---
 window.addEventListener('resize', () => {
     world.width(window.innerWidth);
     world.height(window.innerHeight);

@@ -60,6 +60,12 @@ const world = Globe()
         const nameAdmin = props.ADMIN || props.name || "";
         const nameEs = props.NAME_ES || props.name_es || "";
         
+        // 5. SOLUCIÓN AL INPUT DE BÚSQUEDA: Sincronizar la barra de texto superior
+        const inputBusqueda = document.getElementById('search-input');
+        if (inputBusqueda) {
+            inputBusqueda.value = nameEs || nameAdmin;
+        }
+
         // Enviamos los 4 parámetros ordenados para que la función haga su magia
         cargarInfoPais(iso2, iso3, nameAdmin, nameEs);
     });
@@ -76,7 +82,7 @@ fetch('https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/data
 world.controls().autoRotate = true;
 world.controls().autoRotateSpeed = 0.5;
 world.controls().enableZoom = true;
-world.controls().maxDistance = 400; // <--- Bloquea que el usuario se aleje al espacio infinito
+world.controls().maxDistance = 400; // Bloquea que el usuario se aleje al espacio infinito
 world.pointOfView({ lat: 20, lng: -40, altitude: 2.5 });
 
 world.onLabelHover(label => {
@@ -182,17 +188,16 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     if (elemNacionalidad) elemNacionalidad.innerText = "Buscando...";
     if (elemHistory) elemHistory.innerText = "Consultando archivos históricos...";
 
-    // --- CASO ESPECIAL CORREGIDO: ANTÁRTIDA (FUERZA EL TÉRMINO GEOGRÁFICO CORRECTO) ---
+    // --- CASO ESPECIAL CORREGIDO: ANTÁRTIDA (EVITA PELÍCULAS DE WIKIPEDIA) ---
     if (iso3 === "ATA" || iso2 === "AQ" || nameAdmin.toLowerCase() === "antarctica" || nombreMostrar === "Antártida") {
         if (elemCapital) elemCapital.innerText = "No posee (Regida por el Tratado Antártico)";
         if (elemPop) elemPop.innerText = "0 hab. (Científicos temporales)";
         if (elemNacionalidad) elemNacionalidad.innerText = "Antártico / Antártica";
         if (elemName) elemName.innerText = "Antártida";
         
-        // Forzamos explícitamente a Wikipedia a buscar el artículo geográfico y evitamos la película cinematográfica
         const dataWiki = await apiHistoriaPais("Antártida (continente)");
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente cubierto de hielo que rodea el Polo Sur geográfico, destinado a la paz y la investigación científica.";
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente cubierto de hielo que rodea el Polo Sur geográfico, destinado a la paz y la ciencia.";
         }
         return; 
     }

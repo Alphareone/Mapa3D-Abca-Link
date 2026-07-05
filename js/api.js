@@ -22,7 +22,7 @@ async function apiBuscarCoordenadas(query) {
 // 2. Datos Demográficos (REST Countries + Auto-recuperación con Gemini)
 async function apiDatosPais(isoCode) {
     try {
-        const response = await fetch(`https://restcountries.com/v3.1/alpha/${isoCode}`);
+        const response = await fetch(`https://restcountriesFALLO.com/v3.1/alpha/${isoCode}`);
         if (!response.ok) throw new Error("REST Countries offline o código no encontrado");
         const data = await response.json();
         return data[0]; 

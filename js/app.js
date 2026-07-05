@@ -70,6 +70,7 @@ fetch('https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/data
 world.controls().autoRotate = true;
 world.controls().autoRotateSpeed = 0.5;
 world.controls().enableZoom = true;
+world.controls().maxDistance = 450;
 world.pointOfView({ lat: 20, lng: -40, altitude: 2.5 });
 
 world.onLabelHover(label => {
@@ -212,11 +213,17 @@ function toggleTheme() {
         body.classList.remove('dark-mode');
         document.getElementById('theme-text').innerText = 'Oscuro';
         themeIcon.innerHTML = iconMoon;
+        
+        // Fondo dinámico azul cielo para el modo claro
+        document.getElementById('globeViz').style.background = "linear-gradient(180deg, #bbf2f6 0%, #86e3ce 100%)";
         world.globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
     } else {
         body.classList.add('dark-mode');
         document.getElementById('theme-text').innerText = 'Claro';
         themeIcon.innerHTML = iconSun;
+        
+        // Volver al espacio transparente/oscuro en modo noche
+        document.getElementById('globeViz').style.background = "rgba(0,0,0,0)";
         world.globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg');
     }
     

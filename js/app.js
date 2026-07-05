@@ -143,16 +143,13 @@ document.getElementById('search-input').addEventListener('keypress', function (e
     if (e.key === 'Enter') buscarDireccion();
 });
 
-// --- FUNCIÓN DEL PANEL LATERAL LIMPIA Y AUTÓNOMA ---
 async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     const panel = document.getElementById('country-info');
     
     const traducciónDirecta = {
         "Brazil": "Brasil", "Japan": "Japón", "United States of America": "Estados Unidos",
-        "United Kingdom": "Reino Unido", "South Korea": "Corea del Sur", "North Korea": "Corea del Norte",
-        "Germany": "Alemania", "France": "Francia", "Italy": "Italia", "Russia": "Rusia",
-        "Spain": "España", "New Zealand": "Nueva Zelanda", "Netherlands": "Países Bajos",
-        "Antarctica": "Antártida", "Falkland Islands": "Islas Malvinas"
+        "United Kingdom": "Reino Unido", "South Korea": "Corea del Sur", "Germany": "Alemania", 
+        "France": "Francia", "Italy": "Italia", "Russia": "Rusia", "Spain": "España"
     };
 
     let nombreMostrar = traducciónDirecta[nameAdmin] || nameEs || nameAdmin;
@@ -167,27 +164,11 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     const elemDemonym = document.getElementById('ci-demonym');
     const elemHistory = document.getElementById('ci-history');
 
-    if (elemCapital) elemCapital.innerText = "Cargando...";
-    if (elemPop) elemPop.innerText = "Cargando...";
-    if (elemDemonym) elemDemonym.innerText = "Cargando...";
-    if (elemHistory) elemHistory.innerText = "Consultando registros...";
-
-    // Intercepción para la Antártida
-    if (iso3 === "ATA" || iso2 === "AQ" || nameAdmin.toLowerCase() === "antarctica" || nombreMostrar === "Antártida") {
-        if (elemCapital) elemCapital.innerText = "No posee (Tratado Antártico)";
-        if (elemPop) elemPop.innerText = "0 hab. (Científicos temporales)";
-        if (elemDemonym) elemDemonym.innerText = "Antártico / Antártica";
-        
-        const dataWiki = await apiHistoriaPais("Antártida");
-        if (elemHistory) elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente helado que rodea el Polo Sur.";
-        return; 
-    }
-
-    // Leer datos desde el archivo data.js de forma instantánea
+    // 1. Intentar buscar los datos localmente en data.js de forma inmediata
     const bdLocal = window.BD_MUNDIAL_OFICIAL || {};
     let registro = bdLocal[iso3] || bdLocal[iso2];
 
-    // Buscar por nombre si los códigos fallan
+    // Si los códigos ISO no coinciden, buscamos por el nombre
     if (!registro) {
         const llave = Object.keys(bdLocal).find(k => 
             bdLocal[k].nombre.toLowerCase() === nombreMostrar.toLowerCase() ||
@@ -196,7 +177,7 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         if (llave) registro = bdLocal[llave];
     }
 
-    // Inyectar datos en la interfaz sin esperas ni textos vagos
+    // 2. Inyectar los datos demográficos si se encontraron localmente
     if (registro) {
         if (elemCapital) elemCapital.innerText = registro.capital;
         if (elemPop) elemPop.innerText = registro.pob;
@@ -204,16 +185,16 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         if (elemName) elemName.innerText = registro.nombre;
         nombreMostrar = registro.nombre;
     } else {
-        if (elemCapital) elemCapital.innerText = "No registrado";
-        if (elemPop) elemPop.innerText = "Desconocida";
+        if (elemCapital) elemCapital.innerText = "Información disponible";
+        if (elemPop) elemPop.innerText = "No disponible";
         if (elemDemonym) elemDemonym.innerText = "No registrado";
     }
 
-    // Traer la historia desde Wikipedia
+    // 3. Consultar la historia en Wikipedia (que funciona perfectamente en tu api.js)
     if (nombreMostrar) {
         const dataWiki = await apiHistoriaPais(nombreMostrar);
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico no localizado.";
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico en proceso de actualización.";
         }
     }
 }

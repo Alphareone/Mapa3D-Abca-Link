@@ -1,10 +1,12 @@
 // js/api.js - Gestión de Peticiones y Respuestas de Emergencia Inteligentes
 
 // Ofuscación de la nueva clave para que el robot de GitHub no muestre alertas de riesgo
+// js/api.js - Asegúrar que las líneas queden exactamente así:
 const parte1 = "AQ.Ab8RN6IVB3fKFu";
 const parte2 = "yupkyw2oW2XB1RJAu";
 const parte3 = "2zNk-OF2c6bCgCj6ekw";
 
+const MI_GEMINI_KEY = parte1.trim() + parte2.trim() + parte3.trim();
 // JavaScript vuelve a armar la clave sola cuando el usuario entra al mapa
 const MI_GEMINI_KEY = parte1 + parte2 + parte3;
 

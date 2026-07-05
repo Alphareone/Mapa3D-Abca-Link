@@ -82,7 +82,7 @@ document.getElementById('globeViz').addEventListener('mousedown', () => {
     world.controls().autoRotate = false;
 });
 
-// --- LÓGICA DE BÚSQUEDA CORREGIDA Y CORRECCIÓN DE UN TYPO ---
+// --- LÓGICA DE BÚSQUEDA ---
 async function buscarDireccion() {
     const query = document.getElementById('search-input').value;
     if (!query) return;
@@ -147,7 +147,7 @@ document.getElementById('search-input').addEventListener('keypress', function (e
     if (e.key === 'Enter') buscarDireccion();
 });
 
-// --- FUNCIÓN DEL PANEL LATERAL COMPLETA Y REPARADA ---
+// --- FUNCIÓN DEL PANEL LATERAL CON INTEGRACIÓN ESTRICTA DE MONEDA LOCAL ---
 async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     const panel = document.getElementById('country-info');
     if (panel) panel.classList.remove('hidden');
@@ -188,7 +188,7 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     if (elemMoneda) elemMoneda.innerText = "Buscando...";
     if (elemHistory) elemHistory.innerText = "Consultando registros...";
 
-    // Interceptación Especial: La Antártida (Evita la película japonesa en Wikipedia)
+    // Interceptación Especial: La Antártida
     if (cleanIso3 === "ATA" || cleanIso2 === "AQ" || cleanNameAdmin.toLowerCase() === "antarctica" || nombreMostrar === "Antártida") {
         if (elemCapital) elemCapital.innerText = "No posee (Tratado Antártico)";
         if (elemPop) elemPop.innerText = "0 hab. (Científicos temporales)";
@@ -196,7 +196,6 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         if (elemMoneda) elemMoneda.innerText = "Ninguna oficial";
         if (elemName) elemName.innerText = "Antártida";
         
-        // Buscamos explícitamente "Antártida" para evitar desvíos de ambigüedad
         const dataWiki = await apiHistoriaPais("Antártida");
         if (elemHistory) {
             elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente helado e inhabitado, protegido internacionalmente para la paz y la cooperación científica.";
@@ -204,7 +203,7 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         return; 
     }
 
-    // PASO 1: Base de Datos de Respaldo Local (data.js)
+    // PASO 1: Carga desde Base de Datos Local (data.js) -> Tu escudo instantáneo
     const bdLocal = window.BD_MUNDIAL_OFICIAL || {};
     let registro = null;
     
@@ -219,15 +218,21 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         if (llave) registro = bdLocal[llave];
     }
 
+    // Inyección inicial con tus datos locales (incluyendo la nueva moneda si ya existe en data.js)
     if (registro) {
         if (elemCapital) elemCapital.innerText = registro.capital;
         if (elemPop) elemPop.innerText = registro.pob;
         if (elemNacionalidad) elemNacionalidad.innerText = registro.gen;
         if (elemName) elemName.innerText = registro.nombre;
         nombreMostrar = registro.nombre;
+        
+        // Si ya definiste la moneda en tu data.js, la pintamos de inmediato
+        if (elemMoneda) {
+            elemMoneda.innerText = registro.moneda || "Cargando...";
+        }
     }
 
-    // PASO 2: API de Datos (Enriquecimiento)
+    // PASO 2: API de Datos Externa (Enriquecimiento Dinámico)
     let dataRest = null;
     try {
         const codigoBuscar = (cleanIso2 && cleanIso2 !== "-99") ? cleanIso2 : cleanIso3;
@@ -235,7 +240,7 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
             dataRest = await apiDatosPais(codigoBuscar);
         }
     } catch (e) {
-        console.warn("API de REST Countries inaccesible.");
+        console.warn("API de REST Countries inaccesible. Usando datos locales de respaldo.");
     }
 
     if (dataRest) {
@@ -245,14 +250,19 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         if (dataRest.capital && dataRest.capital.length > 0 && elemCapital) {
             elemCapital.innerText = dataRest.capital[0];
         }
-        // Corrección de renderizado de Monedas
+        
+        // Si la API trae monedas, formateamos y sobreescribimos con datos en tiempo real
         if (dataRest.currencies && elemMoneda) {
             const monedasFormateadas = Object.keys(dataRest.currencies).map(codigo => {
                 const info = dataRest.currencies[codigo];
                 return `${info.name} ${info.symbol ? `(${info.symbol})` : ""} [${codigo}]`;
             });
             elemMoneda.innerText = monedasFormateadas.join(", ");
+        } else if (registro && registro.moneda) {
+            // Si la API responde pero no trae el nodo "currencies", dejamos tu moneda local
+            elemMoneda.innerText = registro.moneda;
         }
+        
         if (dataRest.demonyms && elemNacionalidad) {
             let genStr = "No registrado";
             if (dataRest.demonyms.spa && dataRest.demonyms.spa.m) genStr = dataRest.demonyms.spa.m;
@@ -265,14 +275,17 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
             if (inputBusqueda) inputBusqueda.value = nombreMostrar;
         }
     } else {
+        // FALLBACK DEFINITIVO: Si la API falló por completo...
         if (!registro) {
             if (elemCapital) elemCapital.innerText = "No disponible";
             if (elemPop) elemPop.innerText = "No disponible";
             if (elemNacionalidad) elemNacionalidad.innerText = "No disponible";
             if (elemMoneda) elemMoneda.innerText = "No disponible";
         } else {
-            // Si falló la API pero tenemos la BD local, mantenemos un guion o aviso elegante en moneda
-            if (elemMoneda) elemMoneda.innerText = "Información no disponible";
+            // Si tenemos el registro de tu data.js, nos aseguramos de que no se muestre "Cargando..."
+            if (elemMoneda) {
+                elemMoneda.innerText = registro.moneda || "No disponible";
+            }
         }
     }
 

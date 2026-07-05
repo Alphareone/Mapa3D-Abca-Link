@@ -8,8 +8,6 @@ const parte3 = "2zNk-OF2c6bCgCj6ekw";
 
 const MI_GEMINI_KEY = parte1.trim() + parte2.trim() + parte3.trim();
 // JavaScript vuelve a armar la clave sola cuando el usuario entra al mapa
-const MI_GEMINI_KEY = parte1 + parte2 + parte3;
-
 // 1. Coordenadas (OpenStreetMap original)
 async function apiBuscarCoordenadas(query) {
     try {

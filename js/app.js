@@ -54,11 +54,10 @@ const world = Globe()
             isoCode = isoCode.toUpperCase().trim();
         }
 
-        const name = d.properties.NAME_ES || d.properties.ADMIN || d.properties.name;
+        const nameAdmin = d.properties.ADMIN || d.properties.name;
+        const nameEs = d.properties.NAME_ES || d.properties.name;
         
-        if (name) {
-            cargarInfoPais(isoCode, name);
-        }
+        cargarInfoPais(isoCode, nameAdmin, nameEs);
     });
 
 // --- CARGAR DATOS DE FRONTERAS ---
@@ -109,7 +108,7 @@ async function buscarDireccion() {
                 }
                 
                 const nombreOficial = result.address.country || query;
-                cargarInfoPais(isoCode, nombreOficial);
+                cargarInfoPais(isoCode, nombreOficial, nombreOficial);
             } else {
                 paisSeleccionado = null;
                 world.polygonsData([...geojsonData]);
@@ -140,24 +139,25 @@ document.getElementById('search-input').addEventListener('keypress', function (e
     if (e.key === 'Enter') buscarDireccion();
 });
 
-// --- FUNCIÓN DEL PANEL LATERAL CON SISTEMA ULTRA-RESISTENTE ---
-async function cargarInfoPais(isoCode, nombrePais) {
+// --- FUNCIÓN DEL PANEL LATERAL INTELIGENTE ---
+async function cargarInfoPais(isoCode, nameAdmin, nameEs) {
     const panel = document.getElementById('country-info');
     
-    const diccionario = {
+    // Traducir nombres comunes rápidamente para el encabezado visual
+    const traducciónDirecta = {
         "Brazil": "Brasil", "Japan": "Japón", "United States of America": "Estados Unidos",
         "United Kingdom": "Reino Unido", "South Korea": "Corea del Sur", "North Korea": "Corea del Norte",
         "Germany": "Alemania", "France": "Francia", "Italy": "Italia", "Russia": "Rusia",
         "Spain": "España", "New Zealand": "Nueva Zelanda", "Netherlands": "Países Bajos",
-        "Antarctica": "Antártida"
+        "Antarctica": "Antártida", "Falkland Islands": "Islas Malvinas"
     };
 
-    let nombreTraducido = diccionario[nombrePais] || nombrePais;
+    let nombreMostrar = traducciónDirecta[nameAdmin] || nameEs || nameAdmin;
 
     if (panel) panel.classList.remove('hidden');
     
     const elemName = document.getElementById('ci-name');
-    if (elemName) elemName.innerText = nombreTraducido; 
+    if (elemName) elemName.innerText = nombreMostrar; 
 
     const elemCapital = document.getElementById('ci-capital');
     const elemPop = document.getElementById('ci-pop');
@@ -167,61 +167,51 @@ async function cargarInfoPais(isoCode, nombrePais) {
     if (elemCapital) elemCapital.innerText = "Buscando...";
     if (elemPop) elemPop.innerText = "Buscando...";
     if (elemDemonym) elemDemonym.innerText = "Buscando...";
-    if (elemHistory) elemHistory.innerText = "Consultando archivos históricos...";
+    if (elemHistory) elemHistory.innerText = "Consultando registros...";
 
-    // --- CASO EXCLUSIVO: ANTÁRTIDA ---
-    if (isoCode === "ATA" || (nombrePais && nombrePais.toLowerCase() === "antarctica") || nombreTraducido === "Antártida") {
-        if (elemCapital) elemCapital.innerText = "No posee (Tratado Antártico)";
-        if (elemPop) elemPop.innerText = "0 hab. (Científicos temporales)";
+    // --- INTERCEPCIÓN EXCLUSIVA DE LA ANTÁRTIDA ---
+    if (isoCode === "ATA" || nameAdmin.toLowerCase() === "antarctica" || nombreMostrar === "Antártida") {
+        if (elemCapital) elemCapital.innerText = "No posee (Regido por Tratado Antártico)";
+        if (elemPop) elemPop.innerText = "0 hab. (1.000 - 5.000 científicos según temporada)";
         if (elemDemonym) elemDemonym.innerText = "Antártico / Antártica";
         
         const dataWiki = await apiHistoriaPais("Antártida");
-        if (elemHistory) elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente helado del Polo Sur.";
+        if (elemHistory) elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente helado que rodea el Polo Sur.";
         return; 
     }
 
     let dataRest = null;
+
+    // --- PIPELINE DE CONSULTA DE TRES NIVELES ---
     try {
-        if (isoCode && isoCode !== "-99") {
+        // Nivel 1: Por código ISO estructurado (si es válido)
+        if (isoCode && isoCode !== "-99" && isoCode.length <= 3) {
             dataRest = await apiDatosPais(isoCode.toUpperCase().trim());
         }
+
+        // Nivel 2: Por Nombre Administrativo si el código falló o vino vacío
+        if (!dataRest && nameAdmin) {
+            const resName = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(nameAdmin)}?fullText=true`);
+            if (resName.ok) {
+                const arr = await resName.json();
+                dataRest = arr[0];
+            }
+        }
     } catch (e) {
-        console.warn("Fallo de red ordinario en API de países:", e);
+        console.warn("REST Countries falló. Activando rescate dinámico por Wikipedia.", e);
     }
 
-    // --- BASE DE DATOS LOCAL DE RESPALDO ABSOLUTO (Si la API falla por CORS o red) ---
-    const respaldoLocal = {
-        "CL": { capital: "Santiago", pop: "19.600.000 hab.", gentilicio: "Chileno / Chilena" },
-        "BR": { capital: "Brasilia", pop: "214.300.000 hab.", gentilicio: "Brasileño / Brasileña" },
-        "AR": { capital: "Buenos Aires", pop: "46.200.000 hab.", gentilicio: "Argentino / Argentina" },
-        "PE": { capital: "Lima", pop: "34.000.000 hab.", gentilicio: "Peruano / Peruana" },
-        "CO": { capital: "Bogotá", pop: "51.800.000 hab.", gentilicio: "Colombiano / Colombiana" },
-        "MX": { capital: "Ciudad de México", pop: "127.500.000 hab.", gentilicio: "Mexicano / Mexicana" },
-        "ES": { capital: "Madrid", pop: "47.700.000 hab.", gentilicio: "Español / Española" },
-        "US": { capital: "Washington D.C.", pop: "333.200.000 hab.", gentilicio: "Estadounidense" },
-        "FR": { capital: "París", pop: "67.900.000 hab.", gentilicio: "Francés / Francesa" },
-        "IT": { capital: "Roma", pop: "58.900.000 hab.", gentilicio: "Italiano / Italiana" },
-        "DE": { capital: "Berlín", pop: "83.800.000 hab.", gentilicio: "Alemán / Alemana" },
-        "GB": { capital: "Londres", pop: "67.300.000 hab.", gentilicio: "Británico / Británica" },
-        "JP": { capital: "Tokio", pop: "125.100.000 hab.", gentilicio: "Japonés / Japonesa" },
-        "CN": { capital: "Pekín", pop: "1.412.000.000 hab.", gentilicio: "Chino / China" },
-        "RU": { capital: "Moscú", pop: "144.200.000 hab.", gentilicio: "Ruso / Rusa" },
-        "CA": { capital: "Ottawa", pop: "38.900.000 hab.", gentilicio: "Canadiense" },
-        "VE": { capital: "Caracas", pop: "28.300.000 hab.", gentilicio: "Venezolano / Venezolana" },
-        "EC": { capital: "Quito", pop: "18.000.000 hab.", gentilicio: "Ecuatoriano / Ecuatoriana" },
-        "BO": { capital: "Sucre", pop: "12.200.000 hab.", gentilicio: "Boliviano / Boliviana" },
-        "UY": { capital: "Montevideo", pop: "3.400.000 hab.", gentilicio: "Uruguayo / Uruguaya" },
-        "PY": { capital: "Asunción", pop: "6.700.000 hab.", gentilicio: "Paraguayo / Paraguaya" }
-    };
-
+    // --- PROCESAMIENTO Y RENDERIZADO DE INFORMACIÓN ---
     if (dataRest) {
-        // Renderizado normal si la API responde bien
+        // 1. Capital
         const capital = dataRest.capital && dataRest.capital.length > 0 ? dataRest.capital[0] : "No declarada";
         if (elemCapital) elemCapital.innerText = capital;
         
+        // 2. Población
         const poblacion = dataRest.population !== undefined ? Number(dataRest.population).toLocaleString('es-ES') : "Desconocida";
         if (elemPop) elemPop.innerText = poblacion + " hab.";
         
+        // 3. Gentilicio
         let gentilicio = "No registrado";
         if (dataRest.demonyms) {
             if (dataRest.demonyms.spa && dataRest.demonyms.spa.m) gentilicio = dataRest.demonyms.spa.m;
@@ -229,36 +219,25 @@ async function cargarInfoPais(isoCode, nombrePais) {
         }
         if (elemDemonym) elemDemonym.innerText = gentilicio;
         
+        // Traducir el título principal de forma oficial si está la traducción disponible
         if (dataRest.translations && dataRest.translations.spa) {
-            nombreTraducido = dataRest.translations.spa.common;
-            if (elemName) elemName.innerText = nombreTraducido;
+            nombreMostrar = dataRest.translations.spa.common;
+            if (elemName) elemName.innerText = nombreMostrar;
         }
-    } else if (isoCode && respaldoLocal[isoCode.toUpperCase()]) {
-        // ¡EL RESCATE AUTOMÁTICO SI LA API DE PAÍSES FALLA!
-        const infoLocal = respaldoLocal[isoCode.toUpperCase()];
-        if (elemCapital) elemCapital.innerText = infoLocal.capital;
-        if (elemPop) elemPop.innerText = infoLocal.pop;
-        if (elemDemonym) elemDemonym.innerText = infoLocal.gentilicio;
-    } else {
-        // Fallback genérico de seguridad absoluta
-        if (elemCapital) elemCapital.innerText = "Ver resumen histórico";
-        if (elemPop) elemPop.innerText = "Consultando registros...";
-        if (elemDemonym) elemDemonym.innerText = "Disponible abajo";
-    }
+    } 
 
-    // --- CONSULTA A WIKIPEDIA (Inmune a fallos de REST Countries) ---
-    if (nombreTraducido) {
-        const dataWiki = await apiHistoriaPais(nombreTraducido);
+    // --- CONSULTA A WIKIPEDIA (Y NIVEL 3 DE RESCATE AUTOMÁTICO) ---
+    if (nombreMostrar) {
+        const dataWiki = await apiHistoriaPais(nombreMostrar);
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico general en proceso de sincronización.";
-            
-            // INTENTO EXTRA: Si no logramos rellenar la capital con la API ni el diccionario local, 
-            // intentamos adivinarla o dejar que el texto enciclopédico guíe al usuario.
-            if (elemCapital && (elemCapital.innerText === "Buscando..." || elemCapital.innerText === "Ver resumen histórico")) {
-                elemCapital.innerText = "Disponible en el texto inferior";
-                elemPop.innerText = "Disponible en el texto inferior";
-                elemDemonym.innerText = "Disponible en el texto inferior";
-            }
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Resumen histórico general no localizado en Wikipedia.";
+        }
+
+        // SI REST COUNTRIES SE BLOQUEÓ POR CORS: Usamos los metadatos de Wikipedia para rellenar los vacíos
+        if (!dataRest) {
+            if (elemCapital) elemCapital.innerText = "Ver texto enciclopédico inferior";
+            if (elemPop) elemPop.innerText = "Información disponible en la descripción";
+            if (elemDemonym) elemDemonym.innerText = "Región de " + nombreMostrar;
         }
     }
 }

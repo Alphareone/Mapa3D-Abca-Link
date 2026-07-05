@@ -149,7 +149,8 @@ async function cargarInfoPais(isoCode, nombrePais) {
         "Brazil": "Brasil", "Japan": "Japón", "United States of America": "Estados Unidos",
         "United Kingdom": "Reino Unido", "South Korea": "Corea del Sur", "North Korea": "Corea del Norte",
         "Germany": "Alemania", "France": "Francia", "Italy": "Italia", "Russia": "Rusia",
-        "Spain": "España", "New Zealand": "Nueva Zelanda", "Netherlands": "Países Bajos"
+        "Spain": "España", "New Zealand": "Nueva Zelanda", "Netherlands": "Países Bajos",
+        "Antarctica": "Antártida"
     };
 
     let nombreTraducido = diccionario[nombrePais] || nombrePais;
@@ -170,18 +171,42 @@ async function cargarInfoPais(isoCode, nombrePais) {
     if (elemDemonym) elemDemonym.innerText = "Buscando...";
     if (elemHistory) elemHistory.innerText = "Consultando archivos históricos...";
 
+    // --- CASO ESPECIAL: ANTÁRTIDA ---
+    if (isoCode === "ATA" || (nombrePais && nombrePais.toLowerCase() === "antarctica") || nombreTraducido === "Antártida") {
+        if (elemCapital) elemCapital.innerText = "No posee (Regida por el Tratado Antártico)";
+        if (elemPop) elemPop.innerText = "0 hab. (1.000 a 5.000 científicos según la estación)";
+        if (elemDemonym) elemDemonym.innerText = "Antártico / Antártica";
+        
+        const dataWiki = await apiHistoriaPais("Antártida");
+        if (elemHistory) {
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente cubierto de hielo que rodea el Polo Sur geográfico.";
+        }
+        return; 
+    }
+
     let dataRest = null;
 
-    // Consultas a la API de países usando tus funciones de api.js
+    // --- ESTRATEGIA DE BÚSQUEDA MULTI-INTENTO INTELIGENTE ---
     try {
+        // Intento 1: Usar tu función nativa de api.js con el código ISO disponible
         if (isoCode && isoCode !== "-99") {
             dataRest = await apiDatosPais(isoCode);
         }
+        
+        // Intento 2: Si la API falló con el código ISO, forzar consulta directa por el nombre en inglés del mapa
         if (!dataRest && nombrePais) {
-            // Intento de rescate por nombre si falla el código ISO
-            const resName = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(nombrePais)}`);
+            const resName = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(nombrePais)}?fullText=true`);
             if (resName.ok) {
                 const arr = await resName.json();
+                dataRest = arr[0];
+            }
+        }
+
+        // Intento 3: Si sigue sin aparecer, buscar por aproximación de nombre traducido
+        if (!dataRest && nombreTraducido) {
+            const resNameEs = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(nombreTraducido)}`);
+            if (resNameEs.ok) {
+                const arr = await resNameEs.json();
                 dataRest = arr[0];
             }
         }
@@ -189,6 +214,7 @@ async function cargarInfoPais(isoCode, nombrePais) {
         console.warn("Error de red con la API de países:", e);
     }
 
+    // --- INYECTAR LOS DATOS ENCONTRADOS ---
     if (dataRest) {
         // 1. Procesar Capital
         const capital = dataRest.capital && dataRest.capital.length > 0 ? dataRest.capital[0] : "No declarada";
@@ -198,7 +224,7 @@ async function cargarInfoPais(isoCode, nombrePais) {
         const poblacion = dataRest.population !== undefined ? Number(dataRest.population).toLocaleString('es-ES') : "Desconocida";
         if (elemPop) elemPop.innerText = poblacion + " hab.";
         
-        // 3. Procesar Gentilicio con lógica de rescate extendida
+        // 3. Procesar Gentilicio (Buscando el español nativo primero)
         let gentilicio = "No registrado";
         if (dataRest.demonyms) {
             if (dataRest.demonyms.spa && dataRest.demonyms.spa.m) gentilicio = dataRest.demonyms.spa.m;
@@ -206,7 +232,7 @@ async function cargarInfoPais(isoCode, nombrePais) {
         }
         if (elemDemonym) elemDemonym.innerText = gentilicio;
         
-        // Sincronizar título en español si viene disponible en las traducciones de la API
+        // Sincronizar el título del panel con el nombre en español oficial de la API
         if (dataRest.translations && dataRest.translations.spa) {
             nombreTraducido = dataRest.translations.spa.common;
             if (elemName) elemName.innerText = nombreTraducido;
@@ -217,7 +243,7 @@ async function cargarInfoPais(isoCode, nombrePais) {
         if (elemDemonym) elemDemonym.innerText = "Información no disponible";
     }
 
-    // Consulta e Inyección de Wikipedia
+    // --- CONSULTA A WIKIPEDIA ---
     if (nombreTraducido) {
         const dataWiki = await apiHistoriaPais(nombreTraducido);
         if (elemHistory) {
@@ -225,7 +251,6 @@ async function cargarInfoPais(isoCode, nombrePais) {
         }
     }
 }
-
 // --- FUNCIÓN DEL TEMA ---
 function toggleTheme() {
     const body = document.body;

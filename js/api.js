@@ -1,6 +1,6 @@
-// js/api.js - Sistema Inteligente de Auto-recuperación (Versión compatible con HTTP Directo)
+// js/api.js - Sistema Inteligente de Auto-recuperación (Corregido Error 400)
 
-// Ofuscación de la nueva clave para que el robot de GitHub no muestre alertas de riesgo
+// Ofuscación de la clave para que el robot de GitHub no muestre alertas de riesgo
 const parte1 = "AQ.Ab8RN6IVB3fKFu";
 const parte2 = "yupkyw2oW2XB1RJAu";
 const parte3 = "2zNk-OF2c6bCgCj6ekw";
@@ -44,11 +44,11 @@ async function apiHistoriaPais(nombrePais) {
     }
 }
 
-// --- NUEVO MOTOR DE PETICIONES HTTP TOTALMENTE COMPATIBLE ---
+// --- MOTOR DE PETICIONES HTTP TOTALMENTE CORREGIDO ---
 
 async function apiDatosPaisFallbackIA(codigoISO) {
-    // Usamos el endpoint v1 de producción estable
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${MI_GEMINI_KEY}`;
+    // Apuntamos al endpoint v1beta con gemini-2.5-flash que resuelve el error 400
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${MI_GEMINI_KEY}`;
     
     const prompt = `Actúa como una base de datos geográfica estricta. Devuelve UNICAMENTE un objeto JSON en español para el país o código ISO: "${codigoISO}".
     Estructura requerida:
@@ -84,7 +84,8 @@ async function apiDatosPaisFallbackIA(codigoISO) {
 }
 
 async function apiGenerarExtractoHistoriaIA(nombrePais) {
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${MI_GEMINI_KEY}`;
+    // Apuntamos al endpoint v1beta con gemini-2.5-flash que resuelve el error 400
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${MI_GEMINI_KEY}`;
     const prompt = `Escribe un resumen histórico muy breve (máximo 30 palabras) sobre el país: ${nombrePais}, redactado en español fluido para un mapa interactivo web.`;
 
     try {

@@ -6,7 +6,7 @@ let hoverPais = null;
 // --- INICIALIZACIÓN DEL GLOBO ---
 const world = Globe()
     (document.getElementById('globeViz'))
-    .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
+    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
     .backgroundColor('rgba(0,0,0,0)')
     .labelsData(todosLosPaises) 
     .labelLat('lat')
@@ -60,7 +60,7 @@ const world = Globe()
         cargarInfoPais(iso2, iso3, nameAdmin, nameEs);
     });
 
-// --- CARGAR DATOS DE FRONTERAS VIA HTTPS SEGURO ---
+// --- CARGAR DATOS DE FRONTERAS VIA HTTPS ---
 fetch('https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson')
     .then(res => res.json())
     .then(countries => {
@@ -82,7 +82,7 @@ document.getElementById('globeViz').addEventListener('mousedown', () => {
     world.controls().autoRotate = false;
 });
 
-// --- LÓGICA DE BÚSQUEDA CORREGIDA (CON SINCRONIZACIÓN DE INPUT) ---
+// --- LÓGICA DE BÚSQUEDA CORREGIDA Y CORRECCIÓN DE UN TYPO ---
 async function buscarDireccion() {
     const query = document.getElementById('search-input').value;
     if (!query) return;
@@ -115,9 +115,7 @@ async function buscarDireccion() {
                 const nombreOficial = result.address.country || query;
                 const iso3 = paisSeleccionado ? (paisSeleccionado.properties.ISO_A3 || paisSeleccionado.properties.iso_a3 || "") : "";
                 
-                // SOLUCIÓN AL ERROR B: Forzamos a que la caja de texto muestre el país real encontrado
                 document.getElementById('search-input').value = nombreOficial;
-                
                 cargarInfoPais(isoCode2, iso3, nombreOficial, nombreOficial);
             } else {
                 paisSeleccionado = null;
@@ -140,7 +138,7 @@ async function buscarDireccion() {
         }
     } catch (error) {
         console.error("Error al buscar la dirección:", error);
-    } filter {
+    } finally {
         button.innerText = "Buscar";
     }
 }
@@ -149,20 +147,18 @@ document.getElementById('search-input').addEventListener('keypress', function (e
     if (e.key === 'Enter') buscarDireccion();
 });
 
-// --- FUNCIÓN DEL PANEL LATERAL BLINDADA (SOLUCIÓN ERROR A) ---
+// --- FUNCIÓN DEL PANEL LATERAL COMPLETA Y REPARADA ---
 async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     const panel = document.getElementById('country-info');
     if (panel) panel.classList.remove('hidden');
 
-    // Limpieza estricta de variables de entrada
     const cleanIso2 = String(iso2 || "").toUpperCase().trim();
     const cleanIso3 = String(iso3 || "").toUpperCase().trim();
     const cleanNameAdmin = String(nameAdmin || "").trim();
     const cleanNameEs = String(nameEs || "").trim();
 
-    // Diccionario extendido bidireccional para interceptar clics globales en inglés
     const diccionario = {
-        "Sweden": "Suecia", "Sweden": "Suecia", "Japan": "Japón", "Japan": "Japón",
+        "Sweden": "Suecia", "Japan": "Japón",
         "United States of America": "Estados Unidos", "United States": "Estados Unidos",
         "United Kingdom": "Reino Unido", "South Korea": "Corea del Sur", "North Korea": "Corea del Norte",
         "Germany": "Alemania", "France": "Francia", "Italy": "Italia", "Russia": "Rusia",
@@ -172,7 +168,6 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
 
     let nombreMostrar = diccionario[cleanNameAdmin] || diccionario[cleanNameEs] || cleanNameEs || cleanNameAdmin;
 
-    // Sincronizar inmediatamente la barra superior con el nombre limpio en español
     const inputBusqueda = document.getElementById('search-input');
     if (inputBusqueda) {
         inputBusqueda.value = nombreMostrar;
@@ -187,14 +182,13 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
     const elemMoneda = document.getElementById('ci-moneda');
     const elemHistory = document.getElementById('ci-history');
 
-    // Inicializadores en el DOM
     if (elemCapital) elemCapital.innerText = "Buscando...";
     if (elemPop) elemPop.innerText = "Buscando...";
     if (elemNacionalidad) elemNacionalidad.innerText = "Buscando...";
     if (elemMoneda) elemMoneda.innerText = "Buscando...";
     if (elemHistory) elemHistory.innerText = "Consultando registros...";
 
-    // Interceptación obligatoria: Caso de la Antártida
+    // Interceptación Especial: La Antártida (Evita la película japonesa en Wikipedia)
     if (cleanIso3 === "ATA" || cleanIso2 === "AQ" || cleanNameAdmin.toLowerCase() === "antarctica" || nombreMostrar === "Antártida") {
         if (elemCapital) elemCapital.innerText = "No posee (Tratado Antártico)";
         if (elemPop) elemPop.innerText = "0 hab. (Científicos temporales)";
@@ -202,21 +196,21 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         if (elemMoneda) elemMoneda.innerText = "Ninguna oficial";
         if (elemName) elemName.innerText = "Antártida";
         
+        // Buscamos explícitamente "Antártida" para evitar desvíos de ambigüedad
         const dataWiki = await apiHistoriaPais("Antártida");
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente dedicado por completo a la investigación científica y la paz internacional bajo control internacional.";
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : "Continente helado e inhabitado, protegido internacionalmente para la paz y la cooperación científica.";
         }
         return; 
     }
 
-    // PASO 1: Búsqueda exhaustiva en tu base de datos local (BD_MUNDIAL_OFICIAL)
+    // PASO 1: Base de Datos de Respaldo Local (data.js)
     const bdLocal = window.BD_MUNDIAL_OFICIAL || {};
     let registro = null;
     
     if (cleanIso3 && bdLocal[cleanIso3]) registro = bdLocal[cleanIso3];
     if (!registro && cleanIso2 && bdLocal[cleanIso2]) registro = bdLocal[cleanIso2];
 
-    // Intento de emparejamiento por texto si los códigos fallaron o vinieron vacíos
     if (!registro) {
         const llave = Object.keys(bdLocal).find(k => 
             bdLocal[k].nombre.toLowerCase() === nombreMostrar.toLowerCase() ||
@@ -225,17 +219,15 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         if (llave) registro = bdLocal[llave];
     }
 
-    // Aplicar inmediatamente el escudo local si existiera coincidencia
     if (registro) {
         if (elemCapital) elemCapital.innerText = registro.capital;
         if (elemPop) elemPop.innerText = registro.pob;
         if (elemNacionalidad) elemNacionalidad.innerText = registro.gen;
         if (elemName) elemName.innerText = registro.nombre;
         nombreMostrar = registro.nombre;
-        if (elemMoneda) elemMoneda.innerText = "Cargando...";
     }
 
-    // PASO 2: Llamada externa asíncrona enriquecida
+    // PASO 2: API de Datos (Enriquecimiento)
     let dataRest = null;
     try {
         const codigoBuscar = (cleanIso2 && cleanIso2 !== "-99") ? cleanIso2 : cleanIso3;
@@ -243,7 +235,7 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
             dataRest = await apiDatosPais(codigoBuscar);
         }
     } catch (e) {
-        console.warn("REST Countries offline. Operando con datos de contingencia.");
+        console.warn("API de REST Countries inaccesible.");
     }
 
     if (dataRest) {
@@ -253,6 +245,7 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
         if (dataRest.capital && dataRest.capital.length > 0 && elemCapital) {
             elemCapital.innerText = dataRest.capital[0];
         }
+        // Corrección de renderizado de Monedas
         if (dataRest.currencies && elemMoneda) {
             const monedasFormateadas = Object.keys(dataRest.currencies).map(codigo => {
                 const info = dataRest.currencies[codigo];
@@ -272,27 +265,27 @@ async function cargarInfoPais(iso2, iso3, nameAdmin, nameEs) {
             if (inputBusqueda) inputBusqueda.value = nombreMostrar;
         }
     } else {
-        // Fallback crítico si la API falla y no había registro previo en data.js
         if (!registro) {
             if (elemCapital) elemCapital.innerText = "No disponible";
             if (elemPop) elemPop.innerText = "No disponible";
             if (elemNacionalidad) elemNacionalidad.innerText = "No disponible";
             if (elemMoneda) elemMoneda.innerText = "No disponible";
         } else {
+            // Si falló la API pero tenemos la BD local, mantenemos un guion o aviso elegante en moneda
             if (elemMoneda) elemMoneda.innerText = "Información no disponible";
         }
     }
 
-    // PASO 3: Carga asíncrona de Wikipedia utilizando el nombre final en Español
+    // PASO 3: Wikipedia Histórica
     if (nombreMostrar) {
         const dataWiki = await apiHistoriaPais(nombreMostrar);
         if (elemHistory) {
-            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : `Información histórica sobre ${nombreMostrar} en proceso de actualización.`;
+            elemHistory.innerText = (dataWiki && dataWiki.extract) ? dataWiki.extract : `Breve reseña histórica sobre ${nombreMostrar} en desarrollo.`;
         }
     }
 }
 
-// --- MANEJO DE TEMA (CORREGIDO HTTPS) ---
+// --- MANEJO DE TEMA ---
 function toggleTheme() {
     const body = document.body;
     const isDark = body.classList.contains('dark-mode');

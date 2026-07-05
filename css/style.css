@@ -1,12 +1,17 @@
-/* Variables por defecto (Modo Claro) */
+/* ==========================================
+   1. VARIABLES DE ENTORNO Y TEMAS (CSS VARIABLES)
+   ========================================== */
+
+/* Variables por defecto (Modo Claro - Azul Cielo Estético) */
 :root {
-    --bg-color: #e4e6eb;
-    --panel-bg: rgba(255, 255, 255, 0.95);
-    --text-color: #333;
-    --border-color: #ddd;
-    --btn-primary: #007bff;
-    --btn-hover: #0056b3;
-    --btn-text: #fff;
+    --bg-color: linear-gradient(180deg, #bbf2f6 0%, #86e3ce 100%);
+    --panel-bg: rgba(255, 255, 255, 0.85);
+    --text-color: #5d6d7e; /* Gris azulado suave */
+    --border-color: rgba(186, 225, 255, 0.6); /* Borde celeste pastel */
+    --btn-primary: #bae1ff; /* Celeste pastel */
+    --btn-hover: #a2c2e6;
+    --btn-text: #4a5568;
+    --title-color: #436bc0; /* Azul de acento para títulos */
 }
 
 /* Variables (Modo Oscuro) */
@@ -18,65 +23,121 @@ body.dark-mode {
     --btn-primary: #00ffcc;
     --btn-hover: #00ccaa;
     --btn-text: #000;
+    --title-color: #00ffcc; /* Verde brillante para títulos */
 }
 
+/* ==========================================
+   2. ESTILOS BASE DEL CUERPO (BODY)
+   ========================================== */
 body { 
     margin: 0; 
-    background-color: var(--bg-color); 
+    background: var(--bg-color); 
+    background-attachment: fixed;
     overflow: hidden; 
     font-family: 'Inter', sans-serif;
     font-weight: 300; 
     color: var(--text-color);
-    transition: background-color 0.5s;
+    transition: background 0.5s, color 0.3s;
 }
 
-/* --- Buscador --- */
+/* ==========================================
+   3. COMPONENTE: BUSCADOR
+   ========================================== */
 #search-container {
-    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-    z-index: 10; background: var(--panel-bg); padding: 10px 15px;
-    border-radius: 30px; border: 1px solid var(--border-color); display: flex; gap: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    position: absolute; 
+    top: 20px; 
+    left: 50%; 
+    transform: translateX(-50%);
+    z-index: 10; 
+    background: var(--panel-bg); 
+    padding: 10px 15px;
+    border-radius: 30px; 
+    border: 1px solid var(--border-color); 
+    display: flex; 
+    gap: 10px;
+    box-shadow: 0 8px 32px rgba(162, 176, 184, 0.15);
     transition: all 0.3s;
+    backdrop-filter: blur(10px);
 }
 
 #search-input {
-    background: transparent; border: none; color: var(--text-color); padding: 5px 10px;
-    font-size: 1rem; width: 300px; outline: none;
+    background: transparent; 
+    border: none; 
+    color: var(--text-color); 
+    padding: 5px 10px;
+    font-size: 1rem; 
+    width: 300px; 
+    outline: none;
     font-family: 'Inter', sans-serif;
     font-weight: 300;
 }
 
-#search-input::placeholder { color: gray; font-weight: 300; }
+#search-input::placeholder { 
+    color: gray; 
+    font-weight: 300; 
+}
 
 #search-button, #theme-toggle {
-    background: var(--btn-primary); border: none; color: var(--btn-text); 
-    padding: 8px 20px; border-radius: 20px; cursor: pointer; 
+    background: var(--btn-primary); 
+    border: none; 
+    color: var(--btn-text); 
+    padding: 8px 20px; 
+    border-radius: 20px; 
+    cursor: pointer; 
     font-family: 'Inter', sans-serif;
     font-weight: 400; 
-    transition: 0.2s;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+body:not(.dark-mode) #search-button, 
+body:not(.dark-mode) #theme-toggle {
+    box-shadow: 0 4px 15px rgba(186, 225, 255, 0.5);
 }
 
 #search-button:hover, #theme-toggle:hover { 
     background: var(--btn-hover); 
 }
 
-/* --- Panel Izquierdo (Instrucciones) --- */
+/* ==========================================
+   4. COMPONENTE: PANEL IZQUIERDO (INSTRUCCIONES)
+   ========================================== */
 #info-panel {
-    position: absolute; bottom: 20px; left: 20px; z-index: 10;
-    background: var(--panel-bg); padding: 15px; border-radius: 12px;
-    font-size: 0.9rem; pointer-events: none; border: 1px solid var(--border-color);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); line-height: 1.5;
+    position: absolute; 
+    bottom: 20px; 
+    left: 20px; 
+    z-index: 10;
+    background: var(--panel-bg); 
+    padding: 15px; 
+    border-radius: 12px;
+    font-size: 0.9rem; 
+    pointer-events: none; 
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); 
+    line-height: 1.5;
     transition: all 0.3s;
 }
 
-#info-panel strong { font-weight: 500; }
+#info-panel strong { 
+    font-weight: 500; 
+}
 
-/* --- NUEVO: Panel Derecho (Info del País) --- */
+/* ==========================================
+   5. COMPONENTE: PANEL DERECHO (INFO DEL PAÍS)
+   ========================================== */
 #country-info {
-    position: absolute; right: 20px; top: 20px; width: 320px; z-index: 10;
-    background: var(--panel-bg); padding: 25px; border-radius: 15px;
-    border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    max-height: 80vh; overflow-y: auto; transition: all 0.4s ease;
+    position: absolute; 
+    right: 20px; 
+    top: 90px; /* Separación perfecta por debajo del buscador */
+    width: 320px; 
+    z-index: 10;
+    background: var(--panel-bg); 
+    padding: 25px; 
+    border-radius: 15px;
+    border: 1px solid var(--border-color); 
+    box-shadow: 0 8px 32px rgba(162, 176, 184, 0.2);
+    max-height: 75vh; 
+    overflow-y: auto; 
+    transition: all 0.4s ease;
     backdrop-filter: blur(10px);
 }
 
@@ -87,21 +148,50 @@ body {
 }
 
 #country-info h2 { 
-    margin: 0 0 15px 0; font-weight: 500; font-size: 1.8rem; 
-    color: var(--btn-primary); border-bottom: 1px solid var(--border-color);
+    margin: 0 0 15px 0; 
+    font-weight: 500; 
+    font-size: 1.8rem;  
+    color: var(--title-color);
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 10px;
+    transition: color 0.3s ease;
 }
 
-.ci-data { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 0.95rem; }
-.ci-data strong { font-weight: 500; }
-.ci-divider { border: 0; height: 1px; background: var(--border-color); margin: 20px 0; opacity: 0.5; }
-.history-text { font-size: 0.9rem; line-height: 1.6; text-align: justify; opacity: 0.9; }
+.ci-data { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    margin: 10px 0; 
+    font-size: 0.95rem; 
+}
 
+.ci-data strong { 
+    font-weight: 500; 
+}
+
+.ci-divider { 
+    border: 0; 
+    height: 1px; 
+    background: var(--border-color); 
+    margin: 20px 0; 
+    opacity: 0.5; 
+}
+
+.history-text { 
+    font-size: 0.9rem; 
+    line-height: 1.6; 
+    text-align: justify; 
+    opacity: 0.9; 
+}
+
+/* Barra de scroll interna del panel */
 #country-info::-webkit-scrollbar { width: 6px; }
 #country-info::-webkit-scrollbar-track { background: transparent; }
 #country-info::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
 
-/* --- Utilidades y Tooltips --- */
+/* ==========================================
+   6. UTILIDADES Y TOOLTIPS
+   ========================================== */
 .icon { width: 18px; height: 18px; fill: currentColor; vertical-align: middle; }
 .icon-small { width: 20px; height: 20px; fill: var(--text-color); }
 .btn-icon { display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -109,83 +199,25 @@ body {
 .panel-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
 
 .pais-tooltip {
-    display: flex; align-items: center; gap: 6px;
-    background: var(--panel-bg); color: var(--text-color);
-    padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color);
-    font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 400; 
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); pointer-events: none;
-}
-/* --- ESTILOS ARMÓNICOS PARA MODO CLARO (Por defecto) --- */
-body:not(.dark-mode) {
-    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); /* Fondo gris/blanco muy suave */
-    color: #5d6d7e; /* Texto gris azulado para no cansar la vista */
-}
-
-/* Paneles flotantes en modo claro (Buscador, tarjeta de país) */
-body:not(.dark-mode) #search-container,
-body:not(.dark-mode) #country-info,
-body:not(.dark-mode) .pais-tooltip {
-    background: rgba(255, 255, 255, 0.85); /* Blanco semi-transparente */
+    display: flex; 
+    align-items: center; 
+    gap: 6px;
+    background: var(--panel-bg); 
+    color: var(--text-color);
+    padding: 8px 14px; 
+    border-radius: 8px; 
+    border: 1px solid var(--border-color);
+    font-family: 'Inter', sans-serif; 
+    font-size: 0.95rem; 
+    font-weight: 400; 
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); 
+    pointer-events: none;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(186, 225, 255, 0.6); /* Borde celeste pastel */
-    box-shadow: 0 8px 32px rgba(162, 176, 184, 0.2); /* Sombra difuminada muy suave */
-    color: #5d6d7e;
 }
 
-/* Títulos y acentos en modo claro */
-body:not(.dark-mode) #country-info h2,
-body:not(.dark-mode) #ci-name {
-    color: #436bc0; /* Azul celeste para los títulos */
-}
-
-/* Botón y controles en modo claro */
-body:not(.dark-mode) button {
-    background: #bae1ff; /* Celeste pastel */
-    color: #4a5568;
-    border: none;
-    box-shadow: 0 4px 15px rgba(186, 225, 255, 0.5);
-}
-body:not(.dark-mode) button:hover {
-    background: #a2c2e6;
-}
-/* --- ADAPTACIÓN PARA CELULARES --- */
-@media (max-width: 768px) {
-    /* El buscador ocupa el centro superior */
-    .search-container {
-        width: 90%;
-        left: 5%;
-        top: 15px;
-        transform: none; /* Quitamos el centrado absoluto anterior */
-        display: flex;
-    }
-
-    /* El input del buscador se adapta al ancho */
-    #search-input {
-        flex-grow: 1;
-        width: auto;
-    }
-
-    /* El panel de información se convierte en una pestaña inferior */
-    #country-info {
-        width: 100%;
-        height: 40vh; /* Ocupa el 40% inferior de la pantalla */
-        bottom: 0;
-        top: auto;
-        right: 0;
-        left: 0;
-        border-radius: 20px 20px 0 0; /* Bordes redondeados solo arriba */
-        box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
-        overflow-y: auto; /* Permite hacer scroll si el texto es muy largo */
-    }
-
-    /* Ajustar tamaño del botón del tema oscuro */
-    .theme-toggle {
-        top: 70px;
-        right: 15px;
-    }
-}
-
-/* --- COLOR POR DEFECTO (MODO OSCURO) --- */
+/* ==========================================
+   7. SECCIÓN INFERIOR (FOOTER GLOBAL)
+   ========================================== */
 footer {
     position: fixed;
     bottom: 15px;
@@ -195,23 +227,51 @@ footer {
     pointer-events: none;
     font-size: 0.85rem;
     text-align: center;
-    
-    color: rgba(255, 255, 255, 0.6); /* Blanco semitransparente en modo oscuro */
-    transition: color 0.3s ease; /* Transición suave al cambiar de tema */
+    color: var(--text-color);
+    opacity: 0.8;
+    transition: color 0.3s ease;
 }
 
 footer a {
     pointer-events: auto;
-    color: #00ffcc; /* Tu verde brillante */
+    color: var(--title-color);
+    text-decoration: none;
     transition: color 0.3s ease;
+    font-weight: 500;
 }
 
-/* --- ADAPTACIÓN PARA MODO CLARO --- */
-/* Cambia '.light-mode' por la clase exacta que use tu código (ej. body.claro o body.light) */
-body.light-mode footer {
-    color: rgba(0, 0, 0, 0.6); /* Gris oscuro/negro para que se lea sobre fondo claro */
+footer a:hover {
+    text-decoration: underline;
 }
 
-body.light-mode footer a {
-    color: #0066ff; /* Un azul o color de acento que resalte en el modo claro */
+/* ==========================================
+   8. RESPONSIVE DESIGN (ADAPTACIÓN MÓVIL)
+   ========================================== */
+@media (max-width: 768px) {
+    /* Buscador adaptado al ancho superior */
+    #search-container {
+        width: 90%;
+        left: 5%;
+        top: 15px;
+        transform: none;
+        display: flex;
+    }
+
+    #search-input {
+        flex-grow: 1;
+        width: auto;
+    }
+
+    /* Panel de información transformado en pestaña inferior deslizante */
+    #country-info {
+        width: 100%;
+        height: 40vh;
+        bottom: 0;
+        top: auto;
+        right: 0;
+        left: 0;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
+        overflow-y: auto;
+    }
 }

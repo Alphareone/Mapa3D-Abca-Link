@@ -1,13 +1,12 @@
-// js/api.js - Gestión de Peticiones y Respuestas de Emergencia Inteligentes
+// js/api.js - Sistema Inteligente de Auto-recuperación (Versión compatible con HTTP Directo)
 
 // Ofuscación de la nueva clave para que el robot de GitHub no muestre alertas de riesgo
-// js/api.js - Asegúrar que las líneas queden exactamente así:
 const parte1 = "AQ.Ab8RN6IVB3fKFu";
 const parte2 = "yupkyw2oW2XB1RJAu";
 const parte3 = "2zNk-OF2c6bCgCj6ekw";
 
 const MI_GEMINI_KEY = parte1.trim() + parte2.trim() + parte3.trim();
-// JavaScript vuelve a armar la clave sola cuando el usuario entra al mapa
+
 // 1. Coordenadas (OpenStreetMap original)
 async function apiBuscarCoordenadas(query) {
     try {
@@ -22,13 +21,12 @@ async function apiBuscarCoordenadas(query) {
 // 2. Datos Demográficos (REST Countries + Auto-recuperación con Gemini)
 async function apiDatosPais(isoCode) {
     try {
-        const response = await fetch(`https://restcountriesFALLO.com/v3.1/alpha/${isoCode}`);
+        const response = await fetch(`https://restcountries.com/v3.1/alpha/${isoCode}`);
         if (!response.ok) throw new Error("REST Countries offline o código no encontrado");
         const data = await response.json();
         return data[0]; 
     } catch (error) {
         console.warn(`[Modo Contingencia] REST Countries falló para ${isoCode}. Activando Gemini...`);
-        // Si el servidor de la API pública falla, la IA simula la respuesta en milisegundos
         return await apiDatosPaisFallbackIA(isoCode);
     }
 }
@@ -41,27 +39,26 @@ async function apiHistoriaPais(nombrePais) {
         return await response.json();
     } catch (error) {
         console.warn(`[Modo Contingencia] Wikipedia falló para ${nombrePais}. Redactando con IA...`);
-        // Si Wikipedia falla o no tiene la página exacta, Gemini escribe una reseña perfecta
         const extractoIA = await apiGenerarExtractoHistoriaIA(nombrePais);
         return { extract: extractoIA };
     }
 }
 
-// --- FUNCIONES INTERNAS DEL MOTOR DE IA ---
+// --- NUEVO MOTOR DE PETICIONES HTTP TOTALMENTE COMPATIBLE ---
 
-// Genera un objeto idéntico al de REST Countries usando Gemini 2.5 Flash
 async function apiDatosPaisFallbackIA(codigoISO) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${MI_GEMINI_KEY}`;
+    // Usamos el endpoint v1 de producción estable
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${MI_GEMINI_KEY}`;
     
-    const prompt = `Actúa como una base de datos geográfica estricta. Devuelve UNICAMENTE un objeto JSON en español para el código ISO de país: "${codigoISO}".
+    const prompt = `Actúa como una base de datos geográfica estricta. Devuelve UNICAMENTE un objeto JSON en español para el país o código ISO: "${codigoISO}".
     Estructura requerida:
     {
-      "name": { "common": "Nombre real del País en Español" },
+      "name": { "common": "Nombre del País en Español" },
       "capital": ["Nombre de la Capital"],
-      "population": 1000000,
+      "population": 1500000,
       "demonyms": { "eng": { "m": "Gentilicio en Español" } }
     }
-    No uses bloques markdown (\`\`\`json), devuelve exclusivamente el texto crudo del objeto JSON.`;
+    No uses formato markdown (\`\`\`json), devuelve exclusivamente el texto crudo del objeto JSON.`;
 
     try {
         const response = await fetch(url, {
@@ -69,24 +66,26 @@ async function apiDatosPaisFallbackIA(codigoISO) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
         const data = await response.json();
         const textoJSON = data.candidates[0].content.parts[0].text.trim();
         return JSON.parse(textoJSON);
     } catch (e) {
-        console.error("La IA de respaldo también falló, aplicando datos mínimos por defecto.", e);
+        console.error("La IA falló, aplicando datos offline:", e);
         return {
             name: { common: codigoISO },
-            capital: ["No disponible"],
+            capital: ["Información en actualización"],
             population: 0,
             demonyms: { eng: { m: "Nativo" } }
         };
     }
 }
 
-// Redacta un extracto fluido para rellenar la caja de Wikipedia si falla
 async function apiGenerarExtractoHistoriaIA(nombrePais) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${MI_GEMINI_KEY}`;
-    const prompt = `Escribe un resumen histórico y geográfico muy breve (máximo 35 palabras) sobre el país: ${nombrePais}. Debe ser en español neutro, fluido y elegante para un mapa interactivo profesional.`;
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${MI_GEMINI_KEY}`;
+    const prompt = `Escribe un resumen histórico muy breve (máximo 30 palabras) sobre el país: ${nombrePais}, redactado en español fluido para un mapa interactivo web.`;
 
     try {
         const response = await fetch(url, {
@@ -94,9 +93,12 @@ async function apiGenerarExtractoHistoriaIA(nombrePais) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
         const data = await response.json();
         return data.candidates[0].content.parts[0].text.trim();
     } catch (e) {
-        return `Información histórica en proceso de sincronización con los servidores globales.`;
+        return `Detalles históricos de esta nación en proceso de sincronización con la base de datos centralizada.`;
     }
 }

@@ -248,30 +248,65 @@ footer a:hover {
    8. RESPONSIVE DESIGN (ADAPTACIÓN MÓVIL)
    ========================================== */
 @media (max-width: 768px) {
-    /* Buscador adaptado al ancho superior */
+    /* Ocultar elementos secundarios que saturan la pantalla móvil */
+    #info-panel, 
+    footer {
+        display: none !important;
+    }
+
+    /* Buscador adaptado al ancho superior sin desbordar */
     #search-container {
-        width: 90%;
-        left: 5%;
+        width: calc(100% - 30px); /* Deja 15px de margen a los lados */
+        left: 15px;
         top: 15px;
         transform: none;
-        display: flex;
+        box-sizing: border-box;
+        padding: 8px 12px; /* Ligeramente más compacto */
     }
 
     #search-input {
-        flex-grow: 1;
-        width: auto;
+        flex: 1;
+        width: 100%;
+        font-size: 16px; /* Evita que iOS haga zoom automático al enfocar el input */
     }
 
-    /* Panel de información transformado en pestaña inferior deslizante */
+    #search-button, #theme-toggle {
+        padding: 8px 12px; /* Botones más amigables para pulgares sin ocupar tanto ancho */
+    }
+
+    /* Panel de información transformado en Bottom Sheet (Pestaña inferior) */
     #country-info {
         width: 100%;
-        height: 40vh;
+        max-height: 50vh; /* Permite crecer hasta la mitad de la pantalla si hay contenido */
+        height: auto;
         bottom: 0;
         top: auto;
         right: 0;
         left: 0;
         border-radius: 20px 20px 0 0;
-        box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
-        overflow-y: auto;
+        border-right: none;
+        border-left: none;
+        border-bottom: none;
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2);
+        box-sizing: border-box;
+        padding: 20px 20px 30px 20px; /* Margen extra abajo para zonas de navegación del sistema */
+    }
+
+    /* Añade un indicador visual de "arrastre" arriba del panel móvil */
+    #country-info::before {
+        content: "";
+        display: block;
+        width: 40px;
+        height: 5px;
+        background: var(--border-color);
+        opacity: 0.6;
+        border-radius: 3px;
+        margin: -10px auto 15px auto;
+    }
+
+    #country-info.hidden {
+        transform: translateY(100%); /* En móvil se esconde hacia abajo, no hacia la derecha */
+        opacity: 0;
+        visibility: hidden;
     }
 }
